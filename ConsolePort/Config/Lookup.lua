@@ -581,8 +581,15 @@ function ConsolePort:GetCustomBindings()
         {name = L.CP_TOGGLEMOUSE, binding = 'CP_TOGGLEMOUSE'},
         {name = L.CP_CAMLOOKBEHIND, binding = 'CP_CAMLOOKBEHIND'},
     }
-end
+end 
 
+function ConsolePort:GetCustomBindingsForRings()
+    local L = db.CUSTOMBINDS
+    return {
+        {name = L.CP_PETRING, binding = 'CLICK ConsolePortBarPet:MiddleButton', texture = [[Interface\Icons\Ability_Hunter_BeastCall]]},
+        {name = L.CP_TOTEMFRAME, binding = 'CLICK ConsolePortTotemToggle:LeftButton', texture = [[Interface\AddOns\ConsolePort\Textures\Icons\Totem-Earth]]},
+    }
+end
 
 ---------------------------------------------------------------
 -- UI cursor frames to be handled with D-pad

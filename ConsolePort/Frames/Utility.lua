@@ -10,6 +10,7 @@
 
 ---------------------------------------------------------------
 local addOn, db = ...
+local CPAPI = db.CPAPI
 ---------------------------------------------------------------
 local ConsolePort = ConsolePort
 ---------------------------------------------------------------
@@ -26,7 +27,51 @@ local 	Utility, Tooltip, Animation, AniCircle =
 local red, green, blue = db.Atlas.GetCC()
 local colMul = 1 + ( 1 - (( red + green + blue ) / 3) )
 ---------------------------------------------------------------
+local DROP_TYPES = {
+	item = true,
+	spell = true,
+	macro = true,
+	mount = true,
+	companion = true,
+}
 
+local TEXTURE_GETS = {
+	----------------------------------
+	item   = function(id) if id then return select(10, GetItemInfo(id)), select(12, GetItemInfo(id)) == 12 end end;
+	spell  = function(id) if id then return select(3, GetSpellInfo(id)), nil end end;
+	companion  = function(id) if id then return select(3, GetSpellInfo(id)), nil end end;
+	macro  = function(id) if id then return select(2, GetMacroInfo(id)), nil end end;
+	action = function(id) if id then return GetActionTexture(id) end end;
+	custom = function(id)
+        if id and ConsolePort.GetCustomBindingsForRings then
+            for _, info in ipairs(ConsolePort:GetCustomBindingsForRings()) do
+                if info.binding == id then return info.texture end
+            end
+        end
+    end;
+	----------------------------------
+	none = function(id) return end;
+} setmetatable(TEXTURE_GETS,{__index = function(t) return t.none end})
+
+local TRANSLATE_CURSOR_INFO = {
+	----------------------------------
+	item = function(self, id)
+		if tonumber(id) then
+			self:SetAttribute('item', GetItemInfo(id))
+			return true
+		end
+	end;
+	--companion = function(self, id)
+	--	local _, _, petSpellID = GetCompanionInfo(detail)
+	--	local petName = GetSpellInfo(petSpellID)
+	--	self:SetAttribute("mountID", petSpellID)
+	--	self:SetAttribute("type", "spell")
+	--	self:SetAttribute("spell", petName)
+	--	return true
+	--end;
+	----------------------------------
+	none = function(id) return end;
+} setmetatable(TRANSLATE_CURSOR_INFO,{__index = function(t) return t.none end})
 ---------------------------------------------------------------
 
 function Animation:ShowNewAction(actionButton, autoassigned, presetID)
@@ -252,46 +297,7 @@ end
 --     OnContentRemoved()
 ---------------------------------------------------------------
 ConsolePortRingButtonMixin = {}
----------------------------------------------------------------
-local DROP_TYPES = {
-	item = true,
-	spell = true,
-	macro = true,
-	mount = true,
-	companion = true,
-}
-
-local TEXTURE_GETS = {
-	----------------------------------
-	item   = function(id) if id then return select(10, GetItemInfo(id)), select(12, GetItemInfo(id)) == 12 end end;
-	spell  = function(id) if id then return select(3, GetSpellInfo(id)), nil end end;
-	companion  = function(id) if id then return select(3, GetSpellInfo(id)), nil end end;
-	macro  = function(id) if id then return select(2, GetMacroInfo(id)), nil end end;
-	action = function(id) if id then return GetActionTexture(id) end end;
-	----------------------------------
-	none = function(id) return end;
-} setmetatable(TEXTURE_GETS,{__index = function(t) return t.none end})
-
-local TRANSLATE_CURSOR_INFO = {
-	----------------------------------
-	item = function(self, id)
-		if tonumber(id) then
-			self:SetAttribute('item', GetItemInfo(id))
-			return true
-		end
-	end;
-	--companion = function(self, id)
-	--	local _, _, petSpellID = GetCompanionInfo(detail)
-	--	local petName = GetSpellInfo(petSpellID)
-	--	self:SetAttribute("mountID", petSpellID)
-	--	self:SetAttribute("type", "spell")
-	--	self:SetAttribute("spell", petName)
-	--	return true
-	--end;
-	----------------------------------
-	none = function(id) return end;
-} setmetatable(TRANSLATE_CURSOR_INFO,{__index = function(t) return t.none end})
----------------------------------------------------------------
+--------------------------------------------------------------- 
 
 ----------------------------------
 -- Script handlers
@@ -328,11 +334,15 @@ end
 function ConsolePortRingButtonMixin:PreClick(button)
 	if not InCombatLockdown() then
 		if button == 'RightButton' then
-			self:SetAttribute('type', nil)
+			self:SetAttribute('custombinding', nil)
+            self:SetAttribute('macrotext', nil)
+            self:SetAttribute('type', nil)
 			self.Cooldown:SetCooldown(0, 0)
 			self.Count:SetText()
 			ClearCursor()
 		elseif DROP_TYPES[GetCursorInfo()] then
+			self:SetAttribute('custombinding', nil)
+            self:SetAttribute('macrotext', nil)
 			self:SetAttribute('type', nil)
 		end
 	end
@@ -372,7 +382,7 @@ function ConsolePortRingButtonMixin:OnAttributeChanged(attribute, detail)
 
     -- only react to attributes that actually represent button content
     if attribute ~= 'type' and attribute ~= 'item' and attribute ~= 'spell'
-       and attribute ~= 'macro' and attribute ~= 'action' then
+       and attribute ~= 'macro' and attribute ~= 'action' and attribute ~= 'custombinding' then
         return
     end
 
@@ -385,7 +395,8 @@ function ConsolePortRingButtonMixin:OnAttributeChanged(attribute, detail)
 	
     if Utility.clearing then return end 
 
-    local actionType = self:GetAttribute('type')
+	local actionType = self:GetAttribute('custombinding') and 'custom' or self:GetAttribute('type')
+
     if actionType then 
         self:OnContentChanged(actionType)
     else 
@@ -421,8 +432,19 @@ function ConsolePortRingButtonMixin:OnTooltipUpdate(elapsed)
                     if link then self.Tooltip:SetHyperlink(link) end
                 end
             elseif info.action == 'macro' then
-                -- Optional: Show macro name/contents
-                self.Tooltip:SetText(info.value, 1, 1, 1)
+                local macroName = GetMacroInfo(info.value)
+                if macroName then self.Tooltip:SetText(macroName, 1, 1, 1) end
+            elseif info.action == 'custom' then
+                local name = "Custom Binding"
+                if ConsolePort.GetCustomBindingsForRings then
+                    for _, bindInfo in ipairs(ConsolePort:GetCustomBindingsForRings()) do
+                        if bindInfo.binding == info.value then
+                            name = bindInfo.name or name
+                            break
+                        end
+                    end
+                end
+                self.Tooltip:SetText(name, 1, 1, 1)
             end
         else
             -- If the slot is empty, hide the tooltip
@@ -474,7 +496,7 @@ function ConsolePortRingButtonMixin:SetUsable(isUsable)
 end
 
 function ConsolePortRingButtonMixin:UpdateState()
-	local action = self:GetAttribute('type')
+	local action = self:GetAttribute('custombinding') and 'custom' or self:GetAttribute('type')
 	self:UpdateTexture(action) 
 
 	if action == 'item' then
@@ -501,8 +523,11 @@ function ConsolePortRingButtonMixin:UpdateState()
 		if actionID then
 			self:SetUsable(IsUsableAction(actionID))
 			self:SetCooldown(GetActionCooldown(actionID))
-		end
-	end
+		end 
+	elseif action == 'custom' then
+        self:SetUsable(true)
+        self:SetCooldown(0, 0)
+    end
 end
 
 function ConsolePortRingButtonMixin:GetAutoAssigned()
@@ -533,9 +558,14 @@ function ConsolePortRingButtonMixin:SetTexture(actionType, actionValue)
 end
 
 function ConsolePortRingButtonMixin:UpdateTexture(action, val)
-	action = action or self:GetAttribute('type')
-	val = val or (action and self:GetAttribute(action))
-	self:SetTexture(action, val)
+    if self:GetAttribute('custombinding') then
+        action = 'custom'
+        val = self:GetAttribute('custombinding')
+    else
+        action = action or self:GetAttribute('type')
+        val = val or (action and self:GetAttribute(action))
+    end
+    self:SetTexture(action, val)
 end
 
 
@@ -740,6 +770,23 @@ function Utility:OnButtonFocused(index)
 		self.Gradient:SetPoint('CENTER', button, 'CENTER', 0, 0)
 		FadeIn(self.Gradient, 0.2, self.Gradient:GetAlpha(), 1)
 		FadeIn(self.Arrow, 0.2, self.Arrow:GetAlpha(), 1)
+        FadeIn(self.PieBand, 0.15, Utility.PieBand:GetAlpha(), 0.9)
+
+		if Utility.PieSeparators then
+			local totalSlots = self.HANDLE:GetIndexSize()
+			local slotIndex = self.HANDLE:GetIndexForAngle(tonumber(index))
+			if slotIndex then
+				for i, sep in ipairs(Utility.PieSeparators) do
+					local left  = slotIndex % totalSlots + 1
+					local right = (slotIndex - 1) % totalSlots + 1
+
+					local isActive = (i == left or i == right) 
+					sep:SetTexture(isActive and
+						[[Interface\AddOns\ConsolePort\Textures\Utility\Pie_Separator_Active]] or
+						[[Interface\AddOns\ConsolePort\Textures\Utility\Pie_Separator_Inactive]])
+				end
+			end
+		end
 
 		self.Spell:Show()
 		self.Spell:ClearAllPoints()
@@ -748,6 +795,13 @@ function Utility:OnButtonFocused(index)
 		FadeOut(self.Runes, 0.2, self.Runes:GetAlpha(), 0)
 		FadeOut(self.Arrow, 0.2, self.Arrow:GetAlpha(), 0)
 		FadeOut(self.Ring, 0.1, self.Ring:GetAlpha(), 0)
+        FadeOut(self.PieBand, 0.2, Utility.PieBand:GetAlpha(), 0)
+
+		if Utility.PieSeparators then
+			for _, sep in ipairs(Utility.PieSeparators) do
+				sep:SetTexture([[Interface\AddOns\ConsolePort\Textures\Utility\Pie_Separator_Inactive]])
+			end
+		end
 
 		self.anglenew = nil
 		self.anglecur = nil
@@ -759,6 +813,7 @@ function Utility:OnButtonFocused(index)
 		self.Spell:ClearAllPoints()
 		self.Spell:Hide()
 	end
+
 	self.oldID = index
 end
 
@@ -783,6 +838,12 @@ end
 local ANI_SPEED, ANI_SMOOTH, ANI_INF = 1.5, 1.4, 0.005
 
 function Utility:OnUpdateDisplay(elapsed)
+	if self.PieBackground:GetAlpha() > 0 then
+        local r = self.PieBackground._rotation + (ANI_SPEED * elapsed)
+        self.PieBackground._rotation = r
+        self.PieBackground:SetRotation(r)
+    end
+
 	-- flatten and update rotation angle
 	local new, cur = self.anglenew, self.anglecur
 	if cur ~= new then
@@ -801,6 +862,8 @@ function Utility:OnUpdateDisplay(elapsed)
 end
 
 function Utility:OnShow()
+	self.PieBackground:SetAlpha(1)
+    self.PieBackground._rotation = 0
 	self.anglecur = nil
 	self.anglenew = nil
 	Animation:Hide()
@@ -818,6 +881,7 @@ function Utility:OnHide()
 	self:ClearFocus()
 	self.anglecur = nil
 	self.anglenew = nil
+	self.PieBackground:SetAlpha(0)
 	self.Gradient:SetAlpha(0)
 	self.Gradient:ClearAllPoints()
 	self.Gradient:Hide()
@@ -867,8 +931,7 @@ local function OnButtonContentChanged(self, actionType)
         preset.Data = {}
     end
 
-    -- 1. Update the Database (for SavedVariables)
-    local val = self:GetAttribute(actionType)
+    local val = (actionType == 'custom') and self:GetAttribute('custombinding') or self:GetAttribute(actionType)
     local cur = self:GetAttribute('cursorID')
     local mnt = self:GetAttribute('mountID')
     local aut = self:GetAttribute('autoassigned') 
@@ -881,14 +944,13 @@ local function OnButtonContentChanged(self, actionType)
         autoassigned = aut,
     }
 
-    -- 2. Update the Prefix Cache (for the Secure Handler) 
-	if not InCombatLockdown() then
-		local prefix = "ring"..activePresetID.."-"
-		self:SetAttribute(prefix.."type", actionType)
-		self:SetAttribute(prefix.."id", val)
-		self:SetAttribute(prefix.."cursorID", cur)
-		self:SetAttribute(prefix.."mountID", mnt)
-	end
+    if not InCombatLockdown() then
+        local prefix = "ring"..activePresetID.."-"
+        self:SetAttribute(prefix.."type", actionType)
+        self:SetAttribute(prefix.."id", val)
+        self:SetAttribute(prefix.."cursorID", cur)
+        self:SetAttribute(prefix.."mountID", mnt)
+    end
 
     self:UpdateState()
 end
@@ -900,14 +962,13 @@ local function OnButtonContentRemoved(self)
         preset.Data[self:GetID()] = nil
     end
 
-    -- Clear the Prefix Cache
-	if not InCombatLockdown() then
-		local prefix = "ring"..activePresetID.."-"
-		self:SetAttribute(prefix.."type", nil)
-		self:SetAttribute(prefix.."id", nil)
-		self:SetAttribute(prefix.."cursorID", nil)
-		self:SetAttribute(prefix.."mountID", nil)
-	end
+    if not InCombatLockdown() then
+        local prefix = "ring"..activePresetID.."-"
+        self:SetAttribute(prefix.."type", nil)
+        self:SetAttribute(prefix.."id", nil)
+        self:SetAttribute(prefix.."cursorID", nil)
+        self:SetAttribute(prefix.."mountID", nil)
+    end
 end
 
 
@@ -924,6 +985,7 @@ function Utility:OnNewRotation(value)
 	self.Ring:SetRotation(value)
 	self.Arrow:SetRotation(value)
 	self.Runes:SetRotation(value)
+	self.PieBand:SetRotation(value)
 end
 
 function Utility:ClearButtons()
@@ -935,10 +997,38 @@ function Utility:ClearButtons()
         actionButton:SetAttribute('cursorID', nil)
         actionButton:SetAttribute('mountID', nil)
         actionButton:SetAttribute('item', nil) 
-		actionButton.Count:SetText()
+        
+        -- Clear custom handlers
+        actionButton:SetAttribute('custombinding', nil)
+        actionButton:SetAttribute('macrotext', nil)
+        
+        actionButton.Count:SetText()
     end
 
     self.clearing = false -- back to normal
+end
+
+function Utility:RefreshPieSeparators()
+    if self.PieSeparators then
+        for _, sep in ipairs(self.PieSeparators) do
+            sep:Hide()
+        end
+    end
+    self.PieSeparators = {}
+
+    local totalSlots = self.HANDLE:GetIndexSize()
+    local angleStep = 360 / totalSlots
+
+    for i = 1, totalSlots do
+        local sep = self:CreateTexture(nil, 'ARTWORK', nil, 2)
+        sep:SetTexture([[Interface\AddOns\ConsolePort\Textures\Utility\Pie_Separator_Inactive]])
+        sep:SetPoint('CENTER', Utility, 'CENTER', 0, 0)
+        sep:SetSize(810, 810)  -- same as background
+       	sep:SetRotation(math.rad(270 - (i - 1) * angleStep + (angleStep * 0.5)))
+        sep:SetAlpha(0.8)
+        sep:Show()
+        self.PieSeparators[i] = sep
+    end
 end
 
 function Utility:OnRefresh(size)   
@@ -969,10 +1059,28 @@ function Utility:OnRefresh(size)
         local actionButton = self.Buttons[index]
         if actionButton and info.action then
             actionButton:SetAttribute('autoassigned', info.autoassigned)
-            actionButton:SetAttribute('type', info.action)
             actionButton:SetAttribute('cursorID', info.cursorID)
             actionButton:SetAttribute('mountID', info.mountID)
-            actionButton:SetAttribute(info.action, info.value)
+
+			if info.action == 'custom' then
+                local macrotext
+				local clickFrame, clickBtn = string.match(info.value or "", "^CLICK ([^:]+):?(.*)")
+				if clickFrame then
+					clickBtn = (clickBtn == "") and "LeftButton" or clickBtn
+					macrotext = '/click ' .. clickFrame .. ' ' .. clickBtn
+				else 
+					macrotext = info.value
+				end
+				
+				actionButton:SetAttribute('custombinding', info.value)
+				actionButton:SetAttribute('macrotext', macrotext)
+				actionButton:SetAttribute('type', 'macro')
+            else
+                actionButton:SetAttribute('type', info.action)
+                actionButton:SetAttribute(info.action, info.value)
+                actionButton:SetAttribute('custombinding', nil)
+            end
+			
             actionButton:Show()
         end
     end
@@ -991,6 +1099,7 @@ function Utility:OnRefresh(size)
 
 	self:SetCursorDrop(true)
 	self:SetExtraButtonDrop(autoExtra)
+	self:RefreshPieSeparators()
 	
 	for _, event in pairs({
 		'ACTIONBAR_UPDATE_COOLDOWN',
@@ -1018,8 +1127,8 @@ end
 
 ---------------------------------------------------------------
 
-function ConsolePort:AddUtilityAction(actionType, value, presetID)
-    if not (actionType and value) then return end
+function ConsolePort:AddUtilityAction(actionType, value, presetID, noanimation)
+    if not (actionType and value) then return end 
 
     presetID = presetID or tonumber(Utility:GetAttribute("ActivePreset") or 1)
 
@@ -1039,11 +1148,14 @@ function ConsolePort:AddUtilityAction(actionType, value, presetID)
             if (actionType == "item"  and info.cursorID == tonumber(value)) or
                (actionType == "mount" and info.mountID == tonumber(value)) or
                (info.value == value) then
-                if presetID == tonumber(Utility:GetAttribute("ActivePreset") or 1) then
-                    Animation:ShowNewAction(Utility.Buttons[slot])
-                else
-                    Animation:ShowPresetAction(presetID, slot)
-                end
+				
+				if(not noanimation) then
+					if presetID == tonumber(Utility:GetAttribute("ActivePreset") or 1) then
+						Animation:ShowNewAction(Utility.Buttons[slot])
+					else
+						Animation:ShowPresetAction(presetID, slot)
+					end
+				end
                 return
             end
         end
@@ -1070,10 +1182,14 @@ function ConsolePort:AddUtilityAction(actionType, value, presetID)
     if presetID == activePreset then
         Utility:OnRefresh(#Utility.Buttons)
         if Utility.Buttons[freeSlot] then
-            Animation:ShowNewAction(Utility.Buttons[freeSlot])
+			if(not noanimation) then 
+            	Animation:ShowNewAction(Utility.Buttons[freeSlot])
+			end
         end
     else
-        Animation:ShowPresetAction(presetID, freeSlot)
+		if(not noanimation) then
+        	Animation:ShowPresetAction(presetID, freeSlot)
+		end
     end
 end
 
@@ -1312,6 +1428,22 @@ Utility:HookScript('OnShow', Utility.OnShow)
 Utility:HookScript('OnEvent', Utility.OnEvent)
 Utility:HookScript('OnUpdate', Utility.OnUpdateDisplay)
 ---------------------------------------------------------------
+
+Utility.PieBackground = Utility:CreateTexture(nil, 'BACKGROUND', nil, -1)
+Utility.PieBackground:SetTexture([[Interface\AddOns\ConsolePort\Textures\Utility\Pie_Background]])
+Utility.PieBackground:SetPoint('CENTER', 0, 0)
+Utility.PieBackground:SetSize(820, 820)
+Utility.PieBackground:SetBlendMode('BLEND')
+Utility.PieBackground:SetVertexColor(red * 0.6, green * 0.6, blue * 0.6)
+Utility.PieBackground:SetAlpha(0)  -- hidden until ring opens
+Utility.PieBackground._rotation = 0
+
+Utility.PieBand = Utility:CreateTexture(nil, 'ARTWORK', nil, 3)
+Utility.PieBand:SetTexture([[Interface\AddOns\ConsolePort\Textures\Utility\Pie_Band]])
+Utility.PieBand:SetPoint('CENTER', 0, 0)
+Utility.PieBand:SetSize(410, 410)
+Utility.PieBand:SetVertexColor(red * colMul, green * colMul, blue * colMul)
+Utility.PieBand:SetAlpha(0)  -- hidden until a slot is focused
 
 
 ---------------------------------------------------------------

@@ -5,6 +5,7 @@
 -- and stuff that can be reused for various purposes.
 ---------------------------------------------------------------
 local _, db = ...
+local CPAPI = db.CPAPI
 local path = "Interface\\AddOns\\ConsolePort\\Textures\\"
 local class = select(2, UnitClass("player"))
 local cc = RAID_CLASS_COLORS[class]
@@ -227,6 +228,82 @@ Atlas.GetFutureButton = function(name, parent, secure, buttonAtlas, width, heigh
 	end
 	return button
 end
+
+-- ============================================================
+-- FLAT BUTTON FACTORY
+-- ============================================================
+Atlas.GetFlatButton = function(name, parent, w, h)
+	local red, green, blue = cc.r, cc.g, cc.b
+	
+	w, h = w or 160, h or 32
+	local btn = CreateFrame("Button", name, parent)
+	btn:SetSize(w, h)
+
+	-- Warm dark fill
+	local bg = btn:CreateTexture(nil, "BACKGROUND")
+	bg:SetAllPoints()
+	bg:SetTexture([[Interface\Buttons\WHITE8X8]])
+	bg:SetVertexColor(0.13, 0.10, 0.06, 1)
+	btn._bg = bg
+
+	-- Warm highlight on hover
+	local hl = btn:CreateTexture(nil, "HIGHLIGHT")
+	hl:SetAllPoints()
+	hl:SetTexture([[Interface\Buttons\WHITE8X8]])
+	hl:SetVertexColor(red * 0.4 + 0.1, green * 0.3 + 0.08, blue * 0.1, 0.25)
+
+	-- Pressed darken
+	local pushed = btn:CreateTexture(nil, "BACKGROUND", nil, 1)
+	pushed:SetAllPoints()
+	pushed:SetTexture([[Interface\Buttons\WHITE8X8]])
+	pushed:SetVertexColor(0, 0, 0, 0.35)
+	pushed:Hide()
+	btn:SetScript("OnMouseDown", function() pushed:Show() end)
+	btn:SetScript("OnMouseUp",   function() pushed:Hide() end)
+
+	-- Gold-tinted border
+	btn:SetBackdrop({
+		edgeFile = [[Interface\Buttons\WHITE8X8]],
+		edgeSize = 1,
+	})
+	btn:SetBackdropBorderColor(
+		red * 0.55 + 0.18, green * 0.42 + 0.12, blue * 0.10 + 0.02, 0.9)
+
+	-- Optional left icon
+	local icon = btn:CreateTexture(nil, "ARTWORK")
+	icon:SetSize(18, 18)
+	icon:SetPoint("LEFT", 8, 0)
+	icon:Hide()
+	btn.Icon = icon
+
+	-- Warm-white label
+	local label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	label:SetPoint("CENTER", 0, 0)
+	label:SetTextColor(red * 0.35 + 0.80, green * 0.28 + 0.72, blue * 0.06 + 0.38, 1)
+	btn.Label = label
+
+	function btn:SetText(t)
+		self.Label:SetText(t)
+	end
+	function btn:GetText()
+		return self.Label:GetText()
+	end
+	
+	btn:SetScript("OnMouseDown", function(self)
+		self.Label:SetPoint("CENTER", self, "CENTER", 1, 0)
+	end)
+
+	btn:SetScript("OnMouseUp", function(self)
+		self.Label:SetPoint("CENTER", self, "CENTER", 0, 1)
+	end)
+
+	-- Stub fields the rest of Config.lua expects on GetFutureButton buttons
+	btn.SelectedTexture = { Show = function() end, Hide = function() end }
+	btn.Cover           = { SetGradientAlpha = function() end }
+
+	return btn
+end
+
 ---------------------------------------------------------------
 Atlas.GetGlassWindow  = function(name, parent, templates, classColored, buttonTemplate)
 	local self = CreateAtlasFrame(name, parent, templates, buttonTemplate)

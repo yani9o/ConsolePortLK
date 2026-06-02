@@ -1,4 +1,7 @@
 local addOn, ab = ...
+local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
+
 local r, g, b = ConsolePort:GetData().Atlas.GetNormalizedCC()
 --------------------------------------------------------
 local defaultIcons
@@ -133,11 +136,11 @@ end
 
 function ab:GetDefaultButtonLayout(button)
 	local layout = {
-		CP_T1 = {point = {'LEFT', 456, 56}, dir = 'right', size = 64},
-		CP_T2 = {point = {'RIGHT', -456, 56}, dir = 'left', size = 64},
+		CP_T3 = {point = {'LEFT', 456, 56}, dir = 'right', size = 64},
+		CP_T4 = {point = {'RIGHT', -456, 56}, dir = 'left', size = 64},
 		---
-		CP_T3 = {point = {'LEFT', 396, 16}, dir = 'down', size = 64},
-		CP_T4 = {point = {'RIGHT', -396, 16}, dir = 'down', size = 64},
+		CP_T1 = {point = {'LEFT', 396, 16}, dir = 'down', size = 64},
+		CP_T2 = {point = {'RIGHT', -396, 16}, dir = 'down', size = 64},
 		---
 		CP_L_LEFT 	= {point = {'LEFT', 176, 56}, dir = 'left', size = 64},
 		CP_L_RIGHT 	= {point = {'LEFT', 306, 56}, dir = 'right', size = 64},
@@ -189,10 +192,10 @@ function ab:GetPresets()
 				CP_R_LEFT = {dir = 'left', point = {'RIGHT', -330, 9}, size = 64},
 				CP_R_DOWN = {dir = 'down', point = {'RIGHT', -250, 9}, size = 64},
 				CP_R_UP = {dir = 'up', point = {'RIGHT', -165, 9}, size = 64},
-				CP_T1 = {dir = 'right', point = {'LEFT', 440, 9}, size = 64},
-				CP_T2 = {dir = 'left', point = {'RIGHT', -440, 9}, size = 64},
-				CP_T3 = {dir = 'up', point = {'LEFT', 405, 75}, size = 64},
-				CP_T4 = {dir = 'up', point = {'RIGHT', -405, 75}, size = 64},
+				CP_T3 = {dir = 'right', point = {'LEFT', 440, 9}, size = 64},
+				CP_T4 = {dir = 'left', point = {'RIGHT', -440, 9}, size = 64},
+				CP_T1 = {dir = 'up', point = {'LEFT', 405, 75}, size = 64},
+				CP_T2 = {dir = 'up', point = {'RIGHT', -405, 75}, size = 64},
 			},
 		},
 		Roleplay = {
@@ -204,6 +207,139 @@ function ab:GetPresets()
 			lock = true,
 			layout = ab:GetDefaultButtonLayout(),
 		},
+		["Crossbar: Minimal"] = {
+			scale = 1,
+			width = 1100,
+			watchbars = true,
+			showline = false,
+			lock = true,
+			useSquareButtons = true,
+			layout = {
+				-- RIGHT CLUSTER (Face Buttons)
+				-- Base Y increased to 50 to clear the EXP bar
+				CP_R_LEFT    = {dir = 'left',  point = {'BOTTOM',  100, 75}, size = 45}, 
+				CP_R_RIGHT   = {dir = 'right', point = {'BOTTOM',  200, 75}, size = 45}, 
+				CP_R_UP      = {dir = 'up',    point = {'BOTTOM',  150, 100}, size = 45}, 
+				CP_R_DOWN    = {dir = 'down',  point = {'BOTTOM',  150, 50}, size = 45}, 
+				
+				-- RIGHT SHOULDERS (Stacked vertically in the center-right)
+				CP_T4        = {dir = 'up',    point = {'BOTTOM',   40, 100}, size = 45}, 
+				CP_T1        = {dir = 'down',  point = {'BOTTOM',   40, 50}, size = 45}, 
+
+				-- LEFT CLUSTER (D-Pad)
+				CP_L_LEFT    = {dir = 'left',  point = {'BOTTOM', -200, 75}, size = 45}, 
+				CP_L_RIGHT   = {dir = 'right', point = {'BOTTOM', -100, 75}, size = 45}, 
+				CP_L_UP      = {dir = 'up',    point = {'BOTTOM', -150, 100}, size = 45}, 
+				CP_L_DOWN    = {dir = 'down',  point = {'BOTTOM', -150, 50}, size = 45}, 
+				
+				-- LEFT SHOULDERS (Stacked vertically in the center-left)
+				CP_T3        = {dir = 'up',    point = {'BOTTOM',  -40, 100}, size = 45}, 
+				CP_T2        = {dir = 'down',  point = {'BOTTOM',  -40, 50}, size = 45}, 
+			},
+		}, 
+
+		["Crossbar: Triple"] = {
+			scale = 1,
+			width = 1100,
+			watchbars = true,
+			showline = false,
+			lock = true,
+			useSquareButtons = true,
+			isTriple = true,
+			dividers = {
+				['DIVIDER_LEFT'] = {
+					point = {'BOTTOM', -170, 95},
+					breadth   = 130,   -- taller line
+					depth     = 300,   -- wide glow spread
+					rotation  = 90,
+					thickness = 2,
+					intensity = 12,    -- softer glow
+					opacity = {
+						focus  = 'M1',
+						idle   = nil,
+						hidden = 'M2',
+					},
+				},
+				['DIVIDER_RIGHT'] = {
+					point = {'BOTTOM', 172, 95},
+					breadth   = 130,
+					depth     = 300,
+					rotation  = 270,
+					thickness = 2,
+					intensity = 12,
+					opacity = {
+						focus  = 'M2',
+						idle   = nil,
+						hidden = 'M1',
+					},
+				},
+				['DIVIDER_CENTER_L'] = {
+					point = {'BOTTOM', -168, 95},
+					breadth   = 130,
+					depth     = 300,
+					rotation  = 270,
+					thickness = 2,
+					intensity = 12,
+					opacity = {
+						focus  = 'M0',   -- bright on NOMOD
+						idle   = nil,
+						hidden = 'M1,M2',   -- hide on SHIFT 
+					},
+				},
+				['DIVIDER_CENTER_R'] = {
+					point = {'BOTTOM', 170, 95},
+					breadth   = 130,
+					depth     = 300,
+					rotation  = 90,
+					thickness = 2,
+					intensity = 12,
+					opacity = {
+						focus  = 'M0',
+						idle   = nil,
+						hidden = 'M1,M2', 
+					},
+				},
+			},
+			layout = {
+				-- LEFT DIAMOND (SHIFT) - Centered at -400 (Moved from -350)
+				CP_L_UP_SHIFT     = {point={'BOTTOM', -400, 100}, size=45},
+				CP_L_DOWN_SHIFT   = {point={'BOTTOM', -400, 50},  size=45},
+				CP_L_LEFT_SHIFT   = {point={'BOTTOM', -450, 75},  size=45},
+				CP_L_RIGHT_SHIFT  = {point={'BOTTOM', -350, 75},  size=45},
+				-- Left Face (Shift)
+				CP_R_UP_SHIFT     = {point={'BOTTOM', -250, 100}, size=45},
+				CP_R_DOWN_SHIFT   = {point={'BOTTOM', -250, 50},  size=45},
+				CP_R_LEFT_SHIFT   = {point={'BOTTOM', -300, 75},  size=45},
+				CP_R_RIGHT_SHIFT  = {point={'BOTTOM', -200, 75},  size=45},
+
+
+				CP_T3 = {point = {'BOTTOM', -75, 215}, size=45, scale=0.8, static=true},
+				CP_T4 = {point = {'BOTTOM', -25, 215}, size=45, scale=0.8, static=true},
+				CP_T1 = {point = {'BOTTOM', 25, 215}, size=45, scale=0.8, static=true},
+				CP_T2 = {point = {'BOTTOM', 75, 215}, size=45, scale=0.8, static=true},
+
+				-- CENTER DIAMOND (NOMOD/BOTH) - Stays at 0
+				CP_L_UP           = {point={'BOTTOM', -75, 100}, size=45},
+				CP_L_DOWN         = {point={'BOTTOM', -75, 50},  size=45},
+				CP_L_LEFT         = {point={'BOTTOM', -125, 75}, size=45},
+				CP_L_RIGHT        = {point={'BOTTOM', -25, 75},  size=45},
+				CP_R_UP           = {point={'BOTTOM',  75, 100}, size=45},
+				CP_R_DOWN         = {point={'BOTTOM',  75, 50},  size=45},
+				CP_R_LEFT         = {point={'BOTTOM',  25, 75},  size=45},
+				CP_R_RIGHT        = {point={'BOTTOM',  125, 75}, size=45},
+
+				-- RIGHT DIAMOND (CTRL) - Centered at 400 (Moved from 350)
+				CP_L_UP_CTRL      = {point={'BOTTOM',  250, 100}, size=45},
+				CP_L_DOWN_CTRL    = {point={'BOTTOM',  250, 50},  size=45},
+				CP_L_LEFT_CTRL    = {point={'BOTTOM',  200, 75},  size=45},
+				CP_L_RIGHT_CTRL   = {point={'BOTTOM',  300, 75},  size=45},
+				-- Right Face (Ctrl)
+				CP_R_UP_CTRL      = {point={'BOTTOM',  400, 100}, size=45},
+				CP_R_DOWN_CTRL    = {point={'BOTTOM',  400, 50},  size=45},
+				CP_R_LEFT_CTRL    = {point={'BOTTOM',  350, 75},  size=45},
+				CP_R_RIGHT_CTRL   = {point={'BOTTOM',  450, 75},  size=45},
+			},
+		}
 	}
 end
 

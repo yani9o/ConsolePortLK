@@ -5,15 +5,9 @@
 -- Allows user to mouseover their character to control camera.
 -- Toggles off on targeted spells, InteractUnit and pickups.
 
-
--- I am not sure how to implement a similar function as the Interact Button since 
--- we don't have the CanLootUnit function available, so we can't check loot vincinity
--- so i think even if i do some weird workaround it won't work as expected. so it is disabled
--- at least for now.
-
 local _, db = ...
 ---------------------------------------------------------------
-local TEXTURE, ICONS, Settings = db.TEXTURE, db.ICONS
+local CPAPI, TEXTURE, ICONS, Settings = db.CPAPI, db.TEXTURE, db.ICONS
 ---------------------------------------------------------------
 local 	WorldFrame, UIParent, GameTooltip, Core = 
 		WorldFrame, UIParent, GameTooltip, ConsolePort
@@ -27,27 +21,142 @@ local 	HighlightStart, HighlightStop =
 		TargetPriorityHighlightStart, TargetPriorityHighlightEnd
 ---------------------------------------------------------------
 -- Mouse functions
-local 	UnitGUID, UnitIsDead, UnitCanAttack, UnitExists, CanLootUnit, GetCursorPosition, GetScreenWidth, SetPortrait, SetCVarr = 
-		UnitGUID, UnitIsDead, UnitCanAttack, UnitExists, CanLootUnit, CPAPI.GetScaledCursorPosition, GetScreenWidth, SetPortraitTexture, SetCVar
+local 	UnitGUID, UnitIsDead, UnitCanAttack, UnitExists, GetCursorPosition, GetScreenWidth, SetPortrait, SetCVarr = 
+		UnitGUID, UnitIsDead, UnitCanAttack, UnitExists, CPAPI.GetScaledCursorPosition, GetScreenWidth, SetPortraitTexture, SetCVar
 ---------------------------------------------------------------
 local 	Camera, numTap, modTap, timer, interactPushback, highlightTimer = ConsolePortCamera, 0, 0, 0, 0, 0
 ---------------------------------------------------------------
 local blockCursor, cameraMode, isMouseDown, isCentered, isOutside, isTargeting, hasItem, hasWorldFocus, wasMouseLooking
+
 ---------------------------------------------------------------
 -- Extended API:
 ---------------------------------------------------------------
-local function CanInteractGUID(guid)
-	--if guid then return select(2, CanLootUnit(guid)) end -- returns true if in range
+-- All functions in this section requires AwesomeWotlkLib or at least a implementation of C_NamePlate
+
+-- Loot caching for our custom implementation of CanLootUnit
+local guidToUnit = db.guidToUnit or {}
+db.guidToUnit = guidToUnit 
+
+local hadLoot = {}
+local function SetHadLoot(guid, value, count)
+    hadLoot[guid] = {v = value, t = GetTime(), count = count or 0}
 end
 
+local function GetHadLoot(guid)
+    local entry = hadLoot[guid]
+    if not entry then return nil end
+    if GetTime() - entry.t > 300 then
+        hadLoot[guid] = nil
+        return nil
+    end
+    return entry.v
+end
+
+local lootFrame = CreateFrame('Frame')
+lootFrame:RegisterEvent('LOOT_OPENED')
+lootFrame:RegisterEvent('LOOT_SLOT_CLEARED')
+lootFrame:RegisterEvent('LOOT_CLOSED')
+lootFrame:SetScript('OnEvent', function(self, event)
+    if event == 'LOOT_OPENED' then
+        local guid = UnitGUID('target')
+        if guid then
+            local count = GetNumLootItems()
+            SetHadLoot(guid, count > 0, count)
+        end
+    elseif event == 'LOOT_SLOT_CLEARED' then
+        local guid = UnitGUID('target')
+        local entry = guid and hadLoot[guid]
+        if entry then
+            entry.count = math.max(0, entry.count - 1)
+            if entry.count == 0 then
+                entry.v = false
+            end
+        end
+    elseif event == 'LOOT_CLOSED' then
+        -- nothing to do, state already correct from above events
+    end
+end)
+
+
+-- Custom CanInteract using IsItemInRange with a 5 yard usage item (Ruby Acorn) with a fallback of CheckInteractDistance() which
+-- has 11 yards distance check.
+
+local interactRangeItem = "item:37727"
 local function CanInteract(unit)
-	--if unit then return CanInteractGUID(UnitGUID(unit)) end
-	if(unit) then return CheckInteractDistance(unit, 3) end
+    if unit then 
+		local isInRange
+		if GetItemInfo(interactRangeItem) then
+			isInRange = IsItemInRange(interactRangeItem, unit)
+
+			if(isInRange ~= nil) then
+				return isInRange == 1
+			end
+		end
+		return CheckInteractDistance(unit, 3) 
+	end
+end
+
+local function CanInteractGUID(guid)
+    if not guid then return nil end
+    -- try cached unit token first
+    local unit = guidToUnit[guid]
+    if unit and UnitExists(unit) then
+        return CanInteract(unit) or nil
+    end
+    -- fallback: scan nameplates
+    if C_NamePlate and C_NamePlate.GetNamePlates then
+        for _, plate in ipairs(C_NamePlate.GetNamePlates()) do
+            local u = plate.namePlateUnitToken
+            if u and UnitGUID(u) == guid then
+                guidToUnit[guid] = u
+                return CanInteract(u) or nil
+            end
+        end
+    end
+    return nil
+end
+
+local function CanLootUnit(guid)
+	local UnitTokenFromGUID_Compat
+
+	if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
+		if _G.UnitTokenFromGUID then
+			UnitTokenFromGUID_Compat = _G.UnitTokenFromGUID
+		elseif _G.GetTokenIDsFromGUID then
+			UnitTokenFromGUID_Compat = function(guid)
+				local tokens = _G.GetTokenIDsFromGUID(guid)
+				return tokens and tokens[1]
+			end
+		end
+	end
+
+	if not UnitTokenFromGUID_Compat then return false, false end
+
+	local unit = UnitTokenFromGUID_Compat(guid)
+
+    if not unit or not UnitExists(unit) then return false, false end
+    local isDead = UnitIsDead(unit)
+    if not isDead then return false, false end
+
+    local inRange = IsItemInRange(interactRangeItem, unit)
+    if inRange ~= nil then
+        inRange = inRange == 1
+    else
+        inRange = CheckInteractDistance(unit, 3)
+    end
+
+    local notTappedByOther = not UnitIsTapped(unit) or UnitIsTappedByPlayer(unit) 
+    local canLoot = isDead and inRange and notTappedByOther 
+
+	local knownHasLoot = GetHadLoot(UnitGUID(unit))
+	local hasLoot = knownHasLoot == nil and canLoot or knownHasLoot
+
+    return hasLoot, canLoot
 end
 
 local function CanInteractOrLoot(guid)
-	--if guid then local int, loot = CanLootUnit(guid) return int or loot end
-end
+    return CanInteractGUID(guid)
+end 
 
 local function UnitIsGUID(unit, queryGUID)
 	local guid = unit and UnitGUID(unit)
@@ -363,7 +472,7 @@ for name, script in pairs({
 		self:SetAttribute('npc', nil)
 		self:ClearBindings()
 
-		--if inVehicle or not isEnabled then return end
+		if inVehicle or not isEnabled then return end
 
 		local interact, loot, npc
 
@@ -377,7 +486,7 @@ for name, script in pairs({
 			npc = true
 		elseif ( target == 'enemy' or target == 'friend' ) then 
 			if 	( target == 'friend' and control:RunFor(self, self:GetAttribute('IsHarmfulAction'), id) ) or
-				( target == 'enemy' and not control:RunFor(self, self:GetAttribute('IsHelpfulAction'), id) ) then
+				( target == 'enemy' and control:RunFor(self, self:GetAttribute('IsHelpfulAction'), id) ) then
 				interact = true 
 			end 
 		elseif target == 'loot' then 
@@ -468,7 +577,9 @@ function Mouse:SetHintAnchors(plate)
 	CPAPI.SetShown(ConsolePortTargetAISelector.TopArrow, not displayOnPlate)
 	if displayOnPlate then
 		self:SetPoint('CENTER', plate, 0, -8)
-		self.Button:SetPoint('BOTTOM', plate.UnitFrame.name, 'TOP', 0, 0)
+		--self.Button:SetPoint('BOTTOM', plate.UnitFrame.name, 'TOP', 0, 0)
+		local healthBar = plate:GetChildren() 
+		self.Button:SetPoint('BOTTOM', healthBar, 'TOP', 0, 0)
 	else
 		self:SetPoint('BOTTOM', 0, db('interactHintPosition'))
 		self.Button:SetPoint('RIGHT', self.Text, 'LEFT', -15, 0)
@@ -477,12 +588,29 @@ end
 
 function Mouse:SetNameplateAnchor(targetGUID)
 	if not db('interactHintNoSticky') then
-		--for i, nameplate in ipairs(C_NamePlate.GetNamePlates()) do
-		--	local guid = UnitGUID(nameplate.UnitFrame:GetAttribute('unit'))
-		--	if (targetGUID == guid) then
-		--		return self:SetHintAnchors(nameplate)
-		--	end
-		--end
+		if not C_NamePlate then return end 
+		local UnitTokenFromGUID_Compat
+
+		if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
+			if _G.UnitTokenFromGUID then
+				UnitTokenFromGUID_Compat = _G.UnitTokenFromGUID
+			elseif _G.GetTokenIDsFromGUID then
+				UnitTokenFromGUID_Compat = function(guid)
+					local tokens = _G.GetTokenIDsFromGUID(guid)
+					return tokens and tokens[1]
+				end
+			end
+		end
+
+		if not UnitTokenFromGUID_Compat then return end
+		token = UnitTokenFromGUID_Compat(targetGUID)
+		
+		if token then
+			local plate = C_NamePlate.GetNamePlateForUnit(token)
+			if plate then
+				return self:SetHintAnchors(plate)
+			end
+		end
 	end
 end
 
@@ -567,7 +695,7 @@ function Mouse:TrackSecureHover(elapsed)
 	local exists = UnitExists('mouseover')
 	local isDead, isEnemy = UnitIsDead('mouseover'), UnitCanAttack('player', 'mouseover')
 	if guid then
-		--hasLoot, canLoot = CanLootUnit(guid)
+		hasLoot, canLoot = CanLootUnit(guid) 
 	end
 	if hasLoot and canLoot then
 		self.Text:SetText("Loot")
@@ -582,7 +710,7 @@ end
 function Mouse:TrackInsecureLootTarget(elapsed)
 	local guid, hasLoot, canLoot = UnitGUID('target')
 	if guid then
-		--hasLoot, canLoot = CanLootUnit(guid)
+		hasLoot, canLoot = CanLootUnit(guid)
 	end
 	if hasLoot and canLoot then
 		self:SetOverride('INTERACTTARGET', self.override)
@@ -594,7 +722,7 @@ function Mouse:TrackInsecureLootTarget(elapsed)
 		end
 		self:FadeOut()
 		if not hasLoot then
-			--self:SetScript('OnUpdate', nil)
+			self:SetScript('OnUpdate', nil)
 		end
 	end
 end
@@ -602,7 +730,7 @@ end
 function Mouse:TrackInsecureNPC(elapsed)
 	local guid, _, canInteract = UnitGUID('target')
 	if guid then
-		--_, canInteract = CanLootUnit(guid)
+		_, canInteract = CanLootUnit(guid)
 	end
 	if canInteract then
 		self:SetOverride('INTERACTTARGET', self.override)
@@ -698,7 +826,7 @@ function Mouse:FindLootFromCache(delay, dispatcherCallback)
 		and not UnitExists('target') then
 		--and CanLootUnit(self.cachedUnit) then
 		--------------------------------------------------
-		return --CanLootUnit(self.cachedUnit)
+		return nil --CanLootUnit(self.cachedUnit)
 		--------------------------------------------------
 	elseif dispatcherCallback then
 		self:DispatchLootCheck(delay, self.lootCheckSpool, false)

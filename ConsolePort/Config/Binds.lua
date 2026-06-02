@@ -10,7 +10,7 @@
 local _, db = ...
 ---------------------------------------------------------------
 		-- Resources
-local 	TUTORIAL, BIND, TEXTURE, ICONS,
+local 	CPAPI, TUTORIAL, BIND, TEXTURE, ICONS,
 		-- Utils
 		FadeIn, FadeOut, Hex2RGB,
 		-- Table functions
@@ -22,7 +22,7 @@ local 	TUTORIAL, BIND, TEXTURE, ICONS,
 		-- Reference variables
 		window, rebindFrame, newBindingSet = 
 		-------------------------------------
-		db.TUTORIAL.BIND, "BINDING_NAME_", db.TEXTURE, db.ICONS,
+		db.CPAPI, db.TUTORIAL.BIND, "BINDING_NAME_", db.TEXTURE, db.ICONS,
 		db.UIFrameFadeIn, db.UIFrameFadeOut, db.Hex2RGB,
 		db.table.mixin, db.table.spairs, db.table.compare, db.table.copy,
 		{}, {}, {}, {}, {}, {}, {}, {}, {}
@@ -892,9 +892,9 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 
 ---------------------------------------------------------------
 
-	self.Import = db.Atlas.GetFutureButton("$parentImport", self)
+	self.Import = db.Atlas.GetFlatButton("$parentImport", self)
 	self.Import.Popup = ConsolePortPopup
-	self.Import:SetPoint("LEFT", ConsolePortOldConfigDefault, "RIGHT", 0, 0)
+	self.Import:SetPoint("BOTTOM", ConsolePortOldConfigContainer, "BOTTOM", 0, -42)
 	self.Import:SetText(TUTORIAL.IMPORTBUTTON)
 	self.Import:SetScript("OnClick", function(self)
 		self.Popup:SetPopup(self:GetText(), self.ProfileScroll, self.Import, self.Remove, 600, 500)

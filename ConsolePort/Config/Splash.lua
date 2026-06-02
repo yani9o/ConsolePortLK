@@ -4,7 +4,7 @@
 -- Creates initial tutorial and helper frames for new users. 
 
 local _, db = ...
-local KEY = db.KEY
+local CPAPI, KEY = db.CPAPI, db.KEY
 local SETUP = db.TUTORIAL.SETUP
 
 -- Determine if the base (unmodified) bindings are assigned.

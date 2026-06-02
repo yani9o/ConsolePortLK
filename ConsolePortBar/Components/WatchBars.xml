@@ -46,11 +46,11 @@
 
 	<Frame name="CP_ReputationStatusBarTemplate" inherits="CP_StatusTrackingBarTemplate" mixin="CPReputationBarMixin" virtual="true">
 		<Scripts>
-			<OnLoad>
-				CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
+			<OnLoad>				
+				ConsolePort:GetData().CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
 				self.StatusBar:OnLoad();
 				
-				CPAPI.Mixin(self, CPReputationBarMixin)
+				ConsolePort:GetData().CPAPI.Mixin(self, CPReputationBarMixin)
 				self:OnLoad()
 				self:SetScript("OnEvent", self.OnEvent)
 				self:SetScript("OnShow", self.OnShow)
@@ -83,7 +83,7 @@
 				<HighlightTexture parentKey="Highlight" file="Interface\MainMenuBar\UI-ExhaustionTickHighlight" alphaMode="ADD"/>
 				<Scripts>
 					<OnLoad>
-						CPAPI.Mixin(self, CPExhaustionTickMixin)
+						ConsolePort:GetData().CPAPI.Mixin(self, CPExhaustionTickMixin)
 						self:OnLoad()
 						self:SetScript("OnEvent", self.OnEvent) 
 						self:SetScript("OnEnter", self.ExhaustionToolTipText)
@@ -94,10 +94,10 @@
 		</Frames>
 		<Scripts>
 			<OnLoad>
-				CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
+				ConsolePort:GetData().CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
 				self.StatusBar:OnLoad();
 
-				CPAPI.Mixin(self, CPExpBarMixin)
+				ConsolePort:GetData().CPAPI.Mixin(self, CPExpBarMixin)
 				self:OnLoad()
 				self:SetScript("OnEvent", self.OnEvent)
 				self:SetScript("OnShow", self.OnShow)

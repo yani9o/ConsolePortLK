@@ -5,7 +5,7 @@
 
 local addOn, db = ...
 ---------------------------------------------------------------
-local ICONS, HotkeyMixin = db.ICONS, {}
+local CPAPI, ICONS, HotkeyMixin = db.CPAPI, db.ICONS, {}
 ---------------------------------------------------------------
 local IsControlKeyDown, IsShiftKeyDown = IsControlKeyDown, IsShiftKeyDown
 local function GetStates()

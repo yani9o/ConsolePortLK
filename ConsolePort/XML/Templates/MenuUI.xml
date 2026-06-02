@@ -224,7 +224,7 @@
 		</Layers> 
 		<Scripts>
 			<OnLoad>
-				CPAPI.Mixin(self, ConsolePortHintMixin) 
+				ConsolePortHintMixin:GetCPAPI().Mixin(self, ConsolePortHintMixin) 
 				self:OnLoad() 
 				self:SetScript("OnShow", self.OnShow)
 				self:SetScript("OnHide", self.OnHide) 
@@ -236,7 +236,7 @@
 		<Size x="0" y="72"/>
 		<Scripts>
 			<OnLoad>
-				CPAPI.Mixin(self, ConsolePortHintBarMixin)
+				ConsolePortHintMixin:GetCPAPI().Mixin(self, ConsolePortHintBarMixin)
 				self:OnLoad()   
 			</OnLoad> 
 		</Scripts>
@@ -272,7 +272,7 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad> 
-						CPAPI.Mixin(self, ConsolePortLineSheenMixin)
+						ConsolePortHintMixin:GetCPAPI().Mixin(self, ConsolePortLineSheenMixin)
 						self:SetDirection('LEFT', 1.5);
 					</OnLoad>
 					<OnShow>
@@ -289,7 +289,7 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad> 
-						CPAPI.Mixin(self, ConsolePortLineSheenMixin) 
+						ConsolePortHintMixin:GetCPAPI().Mixin(self, ConsolePortLineSheenMixin) 
 						self:SetDirection('RIGHT', 1.5);
 					</OnLoad>
 					<OnShow>

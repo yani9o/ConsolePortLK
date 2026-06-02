@@ -10,6 +10,8 @@ Frame.xml
 Libs\ButtonGlow.lua
 Libs\ActionButton.lua
 
+Core\SliceMask.lua
+Core\Divider.lua
 Core\Lookup.lua
 Core\Wrapper.lua
 Core\Bar.lua

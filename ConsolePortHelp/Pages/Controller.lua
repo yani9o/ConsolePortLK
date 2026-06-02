@@ -102,8 +102,8 @@ Help:AddPage('Steam controllers', 'Controller', [[<HTML><BODY>
 		Due to how non-steam games are added it may be difficult to find a proper configuration for this plugin.
 Create a new configuration and set the keys to the following: 
 	</p><br/>
-	<IMG src="Interface\AddOns\ConsolePortHelp\Textures\Deck" align="center" width="500" height="250"/>
-	<IMG src="Interface\AddOns\ConsolePortHelp\Textures\Steam" align="center" width="500" height="250"/>
+	<IMG src="Interface\AddOns\ConsolePortHelp\Textures\Deck" align="center" width="550" height="270"/>
+	<IMG src="Interface\AddOns\ConsolePortHelp\Textures\Steam" align="center" width="550" height="270"/>
 </BODY></HTML>]])
 
 
@@ -263,46 +263,5 @@ Help:AddPage('Supported devices', 'WoWpadX', [[<HTML><BODY>
     </p><br/> 
     <p align="left">
         If your controller is not recognized, ensure it is in "X-Input" mode if it has a physical switch. Most modern Bluetooth controllers will "just work" the moment they are paired.
-    </p>
-</BODY></HTML>]])
-
-
-Help:AddPage('Pixel Bridge', 'WoWmapper', [[<HTML><BODY>
-    <H1 align="center">
-        Pixel Bridge
-    </H1><br/>
-    <p align="left">
-        The |cFFFF6600Pixel Bridge|r is an experimental synchronization system designed to close the gap between the game client and WoWpadX.
-        <br/><br/>
-        By encoding your character's real-time state into tiny, unnoticeable pixels in the corner of your screen, ConsolePort can communicate useful information to WoWpadX without the need for intrusive memory reading.
-    </p><br/>
-    <H2 align="left">
-        What does it enable?
-    </H2>
-    <p align="left">
-        While ConsolePort handles the interface, the Pixel Bridge provides the external mapper with "eyes" inside the game world. This enables some QoL features in WoWpadX such as:
-        <br/><br/>
-        |cff69ccf0• Precise Haptic Feedback:|r Your controller can vibrate or change LED colors based on your actual health percentage.<br/>
-        |cff69ccf0• Adaptive Movement:|r The system can automatically detect if your character is walking or running, adjusting stick sensitivity on the fly for smoother navigation.<br/>
-        |cff69ccf0• Combat Awareness:|r External overlays or rumble effects can trigger the moment you enter combat or start targeting a spell reticle.<br/>
-        |cff69ccf0• Intelligent Mouselook:|r Prevents "ghost" cursor movements by instantly syncing the camera toggle state between the game and your sticks.
-    </p><br/>
-    <H2 align="left">
-        How to use it
-    </H2>
-    <p align="left">
-        To activate the bridge, go to the <a href="run:ConsolePortOldConfig:OpenCategory('Config')">|cff69ccf0Settings|r</a> menu and check |cFFFF6600Enable Pixel Bridge|r.
-        <br/><br/>
-        Once enabled, you will notice a tiny (8x1 pixel) flickering magenta block in the top-left corner of your screen. This is the "Beacon" that your controller software uses to lock onto the game window. 
-        <br/><br/>
-        |cffff269bNote:|r For the bridge to work, the top-left corner of your game window must be visible and not obscured by other applications (like Discord overlays or web browsers).
-    </p><br/>
-    <H2 align="left">
-        Performance and Safety
-    </H2>
-    <p align="left">
-        The Pixel Bridge is entirely passive. It does not modify game files, read protected memory, or interact with the server in any way. It simply displays a few colored pixels, making it the safest way to achieve advanced haptic integration.
-        <br/><br/>
-        In terms of performance, the impact is effectively zero. It takes less processing power than showing a single icon on your action bar.
     </p>
 </BODY></HTML>]])

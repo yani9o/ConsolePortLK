@@ -8,7 +8,7 @@
 local addOn, db = ...
 local FadeIn, FadeOut = db.GetFaders()
 local spairs = db.table.spairs
-local TUTORIAL, ICONS = db.TUTORIAL.UICTRL, db.ICONS
+local CPAPI, TUTORIAL, ICONS = db.CPAPI, db.TUTORIAL.UICTRL, db.ICONS
 local WindowMixin = {}
 
 local function GetOuterParent(node)

@@ -1,3 +1,6 @@
+local _, db = ...
+local CPAPI = db.CPAPI
+
 ConsolePortActionButtonMixin = {}
 
 function ConsolePortActionButtonMixin:SetIcon(file)

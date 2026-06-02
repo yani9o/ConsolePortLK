@@ -1,4 +1,7 @@
 local _, ab = ...
+local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
+
 ---------------------------------------------------------------
 CPStatusTrackingBarMixin = { } 
 

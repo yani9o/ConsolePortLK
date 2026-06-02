@@ -1,6 +1,6 @@
 ## Interface: 30300
 ## Title: Console Port |cff739BD0LK|r
-## Notes: Game controller addon
+## Notes: Game controller addon, ported to 3.3.5a
 ## Version: 1.4.0
 
 ## Author: Sebastian Lindfors
@@ -11,6 +11,8 @@
 
 
 Init\Wrapper.lua
+
+Libs\Manifest.xml
 
 XML\Manifest.xml
 Locale\Locale.xml
@@ -24,6 +26,7 @@ Init\Theme.lua
 UI\Alpha.lua
 
 Frames\Atlas.lua
+Frames\About.lua
 Frames\Config.lua
 
 Config\Lookup.lua
@@ -65,6 +68,7 @@ UI\Mixins.lua
 UI\Tooltip.lua
 
 Frames\Item.lua
+Frames\Unit.lua
 Frames\Hooks.lua
 Frames\Hints.lua
 Frames\Popup.lua

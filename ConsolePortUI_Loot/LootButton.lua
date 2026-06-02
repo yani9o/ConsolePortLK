@@ -1,6 +1,8 @@
 local _, L = ...
 local UI, Control, Data = ConsolePortUI:GetEssentials()
 local KEY = Data.KEY
+local CPAPI = Data.CPAPI
+
 local LootButton = CPAPI.CreateFromMixins(ConsolePortActionButtonMixin)
 L.LootButtonMixin = LootButton
 

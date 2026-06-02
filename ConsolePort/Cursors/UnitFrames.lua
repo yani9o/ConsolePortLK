@@ -6,7 +6,10 @@
 -- Gathers all nodes by recursively scanning UIParent for
 -- secure frames with the 'unit' attribute assigned.
 
-local 	addOn, db = ...
+local 	_, db = ...
+
+local   CPAPI = db.CPAPI
+
 local 	Flash, FadeIn, FadeOut = db.UIFrameFlash, db.GetFaders()
 ---------------------------------------------------------------
 local 	Cursor = ConsolePortRaidCursor

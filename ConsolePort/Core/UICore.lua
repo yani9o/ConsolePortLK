@@ -1,3 +1,6 @@
+local _, db = ...
+local CPAPI = db.CPAPI
+
 local UI = {} ConsolePortUI = UI
 ----------------------------------------------------------------
 local 	assert, pairs, ipairs, type, unpack, wipe, tconcat = 

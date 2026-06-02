@@ -6,6 +6,7 @@
 ---------------------------------------------------------------
 local _, db = ...
 ---------------------------------------------------------------
+local CPAPI = db.CPAPI
 		-- Upvalue main frame due to frequent calls
 local 	Core, 
 		-- General functions
@@ -75,7 +76,7 @@ for flag, nodes in pairs({
 		WorldMapTitleButton,
 	},
 	ignoreMenu = {
-		(ObjectiveTrackerFrame and ObjectiveTrackerFrame.HeaderMenu.MinimizeButton),
+		--(ObjectiveTrackerFrame and ObjectiveTrackerFrame.HeaderMenu.MinimizeButton),
 		MinimapZoomIn,
 		MinimapZoomOut,
 	},

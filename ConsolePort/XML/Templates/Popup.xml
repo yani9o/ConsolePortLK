@@ -99,5 +99,7 @@
 		</ButtonText>
 		<NormalFont style="GameFontNormalLeft"/>
 	</Button>
+
+	<Button name="ConsolePortSecurePopupButtonTemplate" virtual="true" inherits="ConsolePortPopupButtonTemplate, SecureUnitButtonTemplate" />
 	
 </Ui>

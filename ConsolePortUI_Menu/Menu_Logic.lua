@@ -1,6 +1,8 @@
 local _, L = ...
 local Menu = L.Menu
 local Control = ConsolePortUI:GetControlHandle()
+local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
 
 function Menu:OnShow()
 	if UIDoFramesIntersect(self, Minimap) and Minimap:IsShown() then

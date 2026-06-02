@@ -2,6 +2,7 @@
 -- Item.lua: Popup menu for managing container items
 ---------------------------------------------------------------
 local _, db = ...
+local CPAPI = db.CPAPI
 local Core, ItemMenu, ItemMenuButtonMixin = ConsolePort, ConsolePortItemMenu, {}
 ---------------------------------------------------------------
 local INDEX_BAGS_COUNT = 2

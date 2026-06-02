@@ -6,6 +6,8 @@
 -- necessarily be visible or part of a regular configuration window.
 
 local db = ConsolePort:GetData() 
+local CPAPI = db.CPAPI
+
 local mixin, spairs = db.table.mixin, db.table.spairs
 local FramePool, Field, Active = {}, {}, 0
 local WindowMixin, Browser, Adder = {}

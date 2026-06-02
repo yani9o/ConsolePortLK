@@ -1,6 +1,7 @@
 -- Bagnon fixes
 
 local _, db = ...
+local CPAPI = db.CPAPI
 
 ConsolePort:AddPlugin('Bagnon', function(self) 
     -- This is the custom check function for Bagnon items. its ugly but works.

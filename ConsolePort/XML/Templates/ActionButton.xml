@@ -70,14 +70,14 @@
 				<Size x="8" y="8"/>
 				<Scripts>
 				<OnLoad>
-					hooksecurefunc(self, 'SetCooldown', CPAPI.RoundCooldown_OnSetCooldown)
+					hooksecurefunc(self, 'SetCooldown', ConsolePort:GetData().CPAPI.RoundCooldown_OnSetCooldown)
 					self:SetAlpha(0)
 				</OnLoad>
 				<OnShow> 
-					CPAPI.RoundCooldown_OnShowCooldown(self)
+					ConsolePort:GetData().CPAPI.RoundCooldown_OnShowCooldown(self)
 				</OnShow>
 				<OnHide>
-					CPAPI.RoundCooldown_OnHideCooldown(self)
+					ConsolePort:GetData().CPAPI.RoundCooldown_OnHideCooldown(self)
 				</OnHide>
 				</Scripts>
 			</Cooldown> 
@@ -88,7 +88,7 @@
 				</Anchors>
 				<Scripts>
 				<OnLoad>
-					CPAPI.RoundCooldown_OnLoad(self)
+					ConsolePort:GetData().CPAPI.RoundCooldown_OnLoad(self)
 				</OnLoad> 
 				</Scripts>
 			</Frame>

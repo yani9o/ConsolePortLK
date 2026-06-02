@@ -1,6 +1,7 @@
 local _, db = ...
 local mx = db.table.mixin
 local UI = ConsolePortUI
+local CPAPI = db.CPAPI
 
 ---------------------------------------------------------------
 -- Return the essential objects that modules are likely to use

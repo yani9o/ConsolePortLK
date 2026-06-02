@@ -6,6 +6,7 @@
 -- 3. Create the slash handler function.
 
 local addOn, db = ...
+local CPAPI = db.CPAPI
 ---------------------------------------------------------------
 local NEWCALIBRATION, BINDINGSLOADED
 ---------------------------------------------------------------

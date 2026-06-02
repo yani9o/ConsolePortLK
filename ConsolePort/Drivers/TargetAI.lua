@@ -1,6 +1,6 @@
--- Can not work on WOTLK Legacy client because of missing unit type nameplateN eg. UnitName("nameplate1")
-
 local _, db = ...
+
+local CPAPI = db.CPAPI 
 ---------------------------------------
 local AI, SEL, HANDLE, CORE = ConsolePortTargetAI, ConsolePortTargetAISelector, ConsolePortMouseHandle, ConsolePort
 ---------------------------------------
@@ -14,30 +14,65 @@ local GetGUID, GetName, IsDead, Exists = UnitGUID, UnitName, UnitIsDead, UnitExi
 local IsPlayer, IsEnemy, IsAttackable = UnitIsPlayer, UnitIsEnemy, UnitCanAttack
 
 ---------------------------------------
-local BLACKLIST = {
-	['89713'] = true; 	-- Koak Hoburn, heirloom mount driver
-	['89715'] = true;	-- Franklin Martin, heirloom mount driver 
-}
----------------------------------------
--- Extended API:
-local function CanInteract(guid)
-	-- guid hack: looting in range, returns true even with no loot.
-	return true --select(2, CanLoot(guid))
+-- Shared guid->unit cache with Mouse.lua
+-- Whichever file loads first creates it, the other picks it up.
+-- Populated from NAME_PLATE_UNIT_ADDED and interaction events.
+local guidToUnit = db.guidToUnit or {}
+db.guidToUnit = guidToUnit
+
+local function CacheUnit(unit)
+	local guid = GetGUID(unit)
+	if guid then guidToUnit[guid] = unit end
 end
 
-local function GetUnitProperties(unit)
+local function UncacheUnit(unit)
 	local guid = GetGUID(unit)
-	if not guid then return end
-	local unitType, _, _, _, _, ID = strsplit('-',guid)
-	return unitType, ID
+	if guid then guidToUnit[guid] = nil end
+end
+
+---------------------------------------
+-- Extended API:
+
+local interactRangeItem = "item:37727"
+local function _canInteract(unit)
+    if unit then 
+		local isInRange
+		if GetItemInfo(interactRangeItem) then
+			isInRange = IsItemInRange(interactRangeItem, unit)
+
+			if(isInRange ~= nil) then
+				return isInRange == 1
+			end
+		end
+		return CheckInteractDistance(unit, 3) 
+	end
+end
+
+local function CanInteract(guid)
+	if not guid then return nil end
+	local unit = guidToUnit[guid]
+	if unit and UnitExists(unit) then
+		return _canInteract(unit) or nil
+	end
+	-- fallback: scan nameplates
+	if C_NamePlate and C_NamePlate.GetNamePlates then
+		for _, plate in ipairs(C_NamePlate.GetNamePlates()) do
+			local u = plate.namePlateUnitToken
+			if u and GetGUID(u) == guid then
+				guidToUnit[guid] = u
+				return _canInteract(u) or nil
+			end
+		end
+	end
+	return nil
 end
 
 local function IsNPC(unit) 
-	local guid = UnitGUID(unit);
-	local B = tonumber(guid:sub(5,5), 16);
+	local guid = UnitGUID(unit)
+	if not guid then return false end
+	local B = tonumber(guid:sub(5,5), 16)
+	if not B then return false end
 	local C = B % 8
-	
-	local unitType, ID = GetUnitProperties(unit)
 	return (not UnitIsPlayer(unit)) and not UnitIsEnemy('player', unit) and (C == 3)
 end
 
@@ -114,37 +149,24 @@ do 	local inRangeMT = {
 				end
 			end;
 		};
-		__newindex = function() end; -- no uncontrolled access.
+		__newindex = function() end;
 		__active = 0;
 	}
 	inRangeMT.__index.__mt = inRangeMT
 	setmetatable(inRange, inRangeMT)
 end
-------------------------------------------------------------------------------
--- markerMT: Associative array with sequential FIFO stack in metatable.
--- Over a play session, the user is likely to interact with a lot of creatures,
--- especially while questing. To cope with the growing data set, each marker
--- is given this self-managing metatable, which automatically prunes entries
--- on a FIFO basis. This keeps the dataset in a manageable size over time.
-------------------------------------------------------------------------------
+
 local markerMT = {
 	__index = {};
 	__limit = MAX_MARKER_GUIDS;
 	__newindex = function(t, k, v)
-		--------------------------------
 		rawset(t, k, v)
-		--------------------------------
 		local mt = getmetatable(t)
-		mt.__idx = nil -- reset iterator
-		--------------------------------
-		-- Pruning on FIFO basis
-		--------------------------------
+		mt.__idx = nil
 		local fifo = mt.__index
 		local limit = mt.__limit
-		--------------
 		tinsert(fifo, 1, k)
 		fifo[limit+1] = nil
-		--------------
 		local num = 0
 		for _,_ in pairs(t) do num=num+1 end
 		if num > limit then
@@ -170,7 +192,6 @@ local function f10(val)
 	return math.floor((val or 0) * 10) / 10
 end
 
--- metatable iterators
 local function __iterate(t)
 	local mt = getmetatable(t)
 	local idx, val = next(t, mt.__idx)
@@ -189,6 +210,20 @@ local function __loop(t)
 end
 
 ---------------------------------------
+AI:SetAttribute('_onattributechanged', [[
+    if name == 'sel-active' then
+        local sel = self:GetFrameRef('SEL')
+         if value then
+            sel:SetAttribute('state-active', 'show')
+            sel:Show()
+        else
+            sel:SetAttribute('state-active', 'hide')
+            sel:Hide()
+        end
+    end
+]])
+
+SecureHandlerSetFrameRef(AI, 'SEL', SEL)
 
 function AI:OnEvent(event, ...)
 	if self[event] then
@@ -199,6 +234,7 @@ end
 function AI:OnHide()
 	inRange:Wipe()
 	wipe(mapData)
+	wipe(guidToUnit)
 	SEL:Hide()
 	self:UnregisterAllEvents()
 end
@@ -260,8 +296,8 @@ function AI:IterateTracker(tracker, convertToGrid)
 end
 
 function AI:UpdateSelection()
-	--CPAPI.SetShown(SEL, inRange:HasMultiple())
-	--self:SetFocus(__loop(inRange))
+	self:SetAttribute('sel-active', inRange:HasMultiple() or nil)
+	self:SetFocus(__loop(inRange))
 end
 
 function AI:SetFocus(guid, name)
@@ -289,7 +325,7 @@ end
 
 function AI:SetZoneID(newID)
 	local isNewZone, oldID = (zone ~= newID), zone
-	zone = newID -- don't modify this anywhere else!
+	zone = newID
 	return isNewZone, oldID, newID
 end
 
@@ -302,11 +338,10 @@ function AI:GetMapDataForID(zoneID)
 end
 
 function AI:GetGridPosition() 
-	local posX, posY = GetPlayerMapPosition("player")
+	local posX, posY = GetPlayerMapPosition('player')
 	posX = f10(posX)
 	posY = f10(posY) 
 	return posX, posY
-
 end
 
 function AI:GetPositionMarker()
@@ -375,26 +410,28 @@ function AI:ForceUpdatePlates()
 end
 
 --------------------------------------------------------
--- Calls to AI:Track should only occur below this line.
---------------------------------------------------------
 
 function AI:WORLD_MAP_UPDATE() 
 	self:SetToCurrentMapMarker()
 end
 
 function AI:GOSSIP_SHOW() 
+	if Exists('npc') then CacheUnit('npc') end
 	if Exists('npc') and IsNPC('npc') then
 		self:Track('npc')
 	end
 end
 
 function AI:MERCHANT_SHOW()
+	if Exists('npc') then CacheUnit('npc') end
 	if Exists('npc') and IsNPC('npc') then
 		self:Track('npc')
 	end
 end
 
 function AI:QUEST_DETAIL()
+	if Exists('questnpc') then CacheUnit('questnpc') end
+	if Exists('npc') then CacheUnit('npc') end
 	if IsNPC('questnpc') then
 		self:Track('questnpc')
 	elseif IsNPC('npc') then
@@ -403,6 +440,8 @@ function AI:QUEST_DETAIL()
 end
 
 function AI:QUEST_GREETING()
+	if Exists('questnpc') then CacheUnit('questnpc') end
+	if Exists('npc') then CacheUnit('npc') end
 	if IsNPC('questnpc') then
 		self:Track('questnpc')
 	elseif IsNPC('npc') then
@@ -422,7 +461,8 @@ end
 function AI:UPDATE_MOUSEOVER_UNIT()
 	if Exists('mouseover') then
 		SEL:Hide()
-		if IsNPC('mouseover') then 
+		if IsNPC('mouseover') then
+			CacheUnit('mouseover')
 			self:Track('mouseover', 'dirty')
 		end
 	else
@@ -431,6 +471,7 @@ function AI:UPDATE_MOUSEOVER_UNIT()
 end
 
 function AI:NAME_PLATE_UNIT_ADDED(unit)
+	CacheUnit(unit)
 	if IsNPC(unit) then
 		self:Track(unit, 'plate', MAX_NAMEPLATES, true)
 	end
@@ -438,6 +479,7 @@ function AI:NAME_PLATE_UNIT_ADDED(unit)
 end
 
 function AI:NAME_PLATE_UNIT_REMOVED(unit)
+	UncacheUnit(unit)
 	self:ClearNPCDirty(GetGUID(unit), 'plate')
 end
 
@@ -446,40 +488,116 @@ function AI:UNIT_THREAT_LIST_UPDATE(unit)
 		CORE:SetNameOnlyForUnit(unit)
 	end
 end
+
 ---------------------------------------
-local InCombatLockdown, IsShiftKeyDown, IsControlKeyDown = InCombatLockdown, IsShiftKeyDown, IsControlKeyDown
+-- SEL: Secure binding setup
+---------------------------------------
+-- SEL is now a Button with SecureHandlerShowHideTemplate +
+-- SecureActionButtonTemplate in XML. This means:
+--   _onshow: runs restricted, can SetBindingClick -> works in combat
+--   _onhide: runs restricted, can ClearBindings -> works in combat
+--   type=macro, macrotext=/targetexact <n> -> fires in combat
+--   PostClick (Lua) advances iterator -> only out of combat, acceptable
+--
+-- Key attributes are pre-computed out of combat and stored on SEL
+-- so the restricted _onshow snippet can read them without needing
+-- GetBindingKey (which is not available in the restricted env).
+---------------------------------------
 
-function SEL:Next()
-	AI:SetFocus(__loop(inRange))
-end
 
-function SEL:OnShow() 
+SEL:SetAttribute('_onattributechanged', [[
+    if name == 'state-active' then
+        if value == 'show' then
+            local k1 = self:GetAttribute('sel-key-1')
+			local k2 = self:GetAttribute('sel-key-2')
+			local k3 = self:GetAttribute('sel-key-3')
+			local k4 = self:GetAttribute('sel-key-4')
+			if k1 and k1 ~= '' then self:SetBindingClick(true, k1, self, '1') end
+			if k2 and k2 ~= '' then self:SetBindingClick(true, k2, self, '1') end
+			if k3 and k3 ~= '' then self:SetBindingClick(true, k3, self, '2') end
+			if k4 and k4 ~= '' then self:SetBindingClick(true, k4, self, '2') end  
+        else
+            self:ClearBindings()
+        end
+    end
+]])
+
+
+-- Restricted: fires when SEL hides, even in combat
+SEL:SetAttribute('_onhide', [[
+	self:ClearBindings()
+]])
+
+-- SEL is a SecureActionButtonTemplate - clicking fires its macro
+SEL:SetAttribute('type', 'macro')
+SEL:SetAttribute('macrotext', '')
+
+---------------------------------------
+-- UpdateSELKeyAttributes
+-- Must run out of combat. Finds the physical keys bound to the
+-- two D-pad actions SEL wants to intercept and stores them as
+-- attributes so _onshow can read them in the restricted env.
+---------------------------------------
+local function UpdateSELKeyAttributes()
+	if InCombatLockdown() then return end
 	local interactWith = db('interactWith')
-	if (interactWith == 'CP_L_UP' or interactWith == 'CP_L_DOWN') then
-		self.CP_L_UP = nil 			; self.CP_L_DOWN = nil
-		self.CP_L_LEFT = self.Next 	; self.CP_L_RIGHT = self.Next
+	-- intercept the axis NOT used for interact
+	local a1, a2
+	if interactWith == 'CP_L_UP' or interactWith == 'CP_L_DOWN' then
+		a1, a2 = 'CP_L_LEFT', 'CP_L_RIGHT'
 	else
-		self.CP_L_UP = self.Next 	; self.CP_L_DOWN = self.Next
-		self.CP_L_LEFT = nil 		; self.CP_L_RIGHT = nil
+		a1, a2 = 'CP_L_UP', 'CP_L_DOWN'
 	end
+	local k1a, k1b = GetBindingKey(a1)
+	local k2a, k2b = GetBindingKey(a2)
+	SEL:SetAttribute('sel-key-1', k1a or '')
+	SEL:SetAttribute('sel-key-2', k1b or '')
+	SEL:SetAttribute('sel-key-3', k2a or '')
+	SEL:SetAttribute('sel-key-4', k2b or '')
 end
 
-function SEL:OnKeyDown(key)
-	if 	( InCombatLockdown() ) or 
-		( IsShiftKeyDown() or IsControlKeyDown() ) or 
-		( Exists('npc') or Exists('questnpc') ) then
-		--self:SetPropagateKeyboardInput(true)
-		return
-	end
-
-	local action = GetBindingAction(key)
-	local override = GetBindingAction(key, true)
-	local isSafe = (ConsolePort:GetCurrentBindingOwner(override) == action) or (override:match('ControllerInput'))
-	local func = self[action]
-	if func and isSafe then
-		func(self)
-		--self:SetPropagateKeyboardInput(false)
-	else
-		--self:SetPropagateKeyboardInput(true)
-	end
+---------------------------------------
+-- UpdateSELMacro
+-- Sets the macrotext to /targetexact the next NPC in inRange.
+-- Called before SEL shows and after each click.
+---------------------------------------
+local function UpdateSELMacro()
+	local _, name = __loop(inRange)
+	SEL:SetAttribute('macrotext', name and ('/targetexact ' .. name) or '')
 end
+
+-- PostClick is not restricted - advances iterator out of combat only.
+-- In combat the macro still fires targeting the last set NPC.
+SEL:HookScript('PostClick', function(self, btn) 
+	if btn == '1' or btn == '2' then
+        local guid, name = __loop(inRange)
+        AI:SetFocus(guid, name)
+    end
+end)
+
+---------------------------------------
+
+function SEL:OnShow()
+	self.Group:Play()
+	-- Pre-compute keys before restricted _onshow reads them.
+	-- SEL only shows when NPCs detected = always out of combat.
+	UpdateSELKeyAttributes()
+	UpdateSELMacro()
+	-- Note: _onshow fires automatically from SecureHandlerShowHideTemplate
+	-- after this Lua OnShow returns, so attributes are ready in time.
+end
+
+SEL:SetScript('OnShow', SEL.OnShow)
+-- OnHide: _onhide handles ClearBindings in restricted env automatically.
+-- No Lua OnHide needed.
+
+---------------------------------------
+-- Re-sync key attributes when bindings reload or interactWith changes
+---------------------------------------
+ConsolePort:RegisterCallback('OnNewBindings', function()
+	UpdateSELKeyAttributes()
+end)
+
+ConsolePort:RegisterVarCallback('interactWith', function()
+	UpdateSELKeyAttributes()
+end)

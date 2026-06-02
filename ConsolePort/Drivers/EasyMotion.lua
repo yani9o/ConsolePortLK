@@ -6,6 +6,9 @@
 -- Thanks to Yoki for original concept! :) 
 
 local addOn, db = ...
+
+local CPAPI = db.CPAPI
+
 ---------------------------------------------------------------
 -- Key sets and their integer identifiers for input processing
 local Key = {

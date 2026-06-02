@@ -6,7 +6,7 @@
 local _, db = ...
 ---------------------------------------------------------------
 		-- Resource tables.
-local 	Settings, TUTORIAL, TEXTURE, ICONS,
+local 	CPAPI, Settings, TUTORIAL, TEXTURE, ICONS,
 		-- Fade wrappers
 		FadeIn, FadeOut,
 		-- Table functions
@@ -14,7 +14,7 @@ local 	Settings, TUTORIAL, TEXTURE, ICONS,
 		-- Mixins
 		Catcher, CheckButton, PopupMixin, WindowMixin = 
 		-------------------------------------
-		nil, db.TUTORIAL, db.TEXTURE, db.ICONS,
+		db.CPAPI, nil, db.TUTORIAL, db.TEXTURE, db.ICONS,
 		db.UIFrameFadeIn, db.UIFrameFadeOut,
 		db.table.mixin, db.table.spairs,
 		{}, {}, {}, {}
@@ -305,7 +305,7 @@ function WindowMixin:Save()
 	end
 
 	-- interact button lite
-	if 	--[==[( not self.IBFullModule.Enable:GetChecked() ) and --]==]
+	if ( not self.IBFullModule.Enable:GetChecked() ) and
 		( self.IBLiteModule.Enable:GetChecked() ) and 
 		( self.IBLiteModule.BindCatcher.CurrentButton ) then
 		db('interactCxpWith', self.IBLiteModule.BindCatcher.CurrentButton)
@@ -351,6 +351,7 @@ function WindowMixin:Save()
 	ConsolePort:LoadRaidCursor()
 	ConsolePort:UpdateMouseDriver()
 	ConsolePort:SetupUtilityRing()
+
 	return needReload, 'MouseEvent', (not db.table.compare(db.Mouse.Events, ConsolePort:GetDefaultMouseEvents()) and db.Mouse.Events)
 end
 
@@ -363,7 +364,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 
 	Settings = db.Settings
 	-- Controller settings popup
-	Controls.Controller = db.Atlas.GetFutureButton('$parentController', Controls)
+	Controls.Controller = db.Atlas.GetFlatButton('$parentController', Controls, 160, 30)	
 
 	-- SmartInteract free floating frame
 	local SmartInteract = CPAPI.CreateFrame('Frame', nil, Controls)
@@ -382,7 +383,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		end
 
 		ExtraButton.Popup = ConsolePortPopup
-		ExtraButton:SetPoint('LEFT', ConsolePortOldConfigDefault, 'RIGHT', 0, 0)
+		ExtraButton:SetPoint('LEFT', ConsolePortOldConfigDefault, 'RIGHT', 10, 0)
 		ExtraButton:SetText(TUTORIAL.CONFIG.CONTROLLERBUTTON)
 		ExtraButton:SetScript('OnClick', function(self)
 			self.Popup:SetPopup(self:GetText(), self.Container, nil, nil, 400, 850)
@@ -525,11 +526,10 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 				FadeOut(self.Dude, .3, self.Dude:GetAlpha(), 0)
 				self.NPC:Show()
 				self.BindWrapper:Show()
-				self:SetHeight(270 + 234 - 140)
+				self:SetHeight(270 + 234)
 				self.Recommend:Show()
-				SmartInteract:Clear(self) --SmartInteract:SetAnchor(self, -100)
-				Controls.IBLiteModule:ClearAllPoints()
-				Controls.IBLiteModule:SetPoint('TOPLEFT', self, 0, -335)
+				SmartInteract:SetAnchor(self, -100)
+				Controls.IBLiteModule:Hide()
 			else
 				self.NPC:Hide()
 				self.BindWrapper:Hide()
@@ -537,9 +537,8 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 				self.Recommend:Hide()
 				FadeIn(self.Hand, .3, self.Hand:GetAlpha(), 1)
 				FadeIn(self.Dude, .3, self.Dude:GetAlpha(), 1)
-				SmartInteract:Clear(self) 
-				Controls.IBLiteModule:ClearAllPoints()
-				Controls.IBLiteModule:SetPoint('TOPLEFT', self, 0, -250)
+				SmartInteract:Clear(self)
+				Controls.IBLiteModule:Show()
 			end
 
 			-- approximate the behaviour of the interact button here.
@@ -675,17 +674,15 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			if not (C_ConsoleXP or QueueInteract) then
 				IBLiteModule:Hide() -- - Disable this module when the client lacks an Interact implementation.
 			end
-			
-			self:SetHeight(230)
 			if self.Enable:GetChecked() then
 				FadeOut(self.Dude, 0.5, self.Dude:GetAlpha(), 0.1) 
 				self.BindWrapper:Show()
-				SmartInteract:Clear(self) --SmartInteract:SetAnchor(self, -60)
+				--SmartInteract:SetAnchor(self, -60)
 			else
 				FadeIn(self.Dude, 0.5, self.Dude:GetAlpha(), .35)
 				self.Description:Show()
 				self.BindWrapper:Hide()
-				SmartInteract:Clear(self)
+				--SmartInteract:Clear(self)
 			end
 		end
 
@@ -1006,24 +1003,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		end
 
 		local function OnClick(self)
-			StaticPopupDialogs['CONSOLEPORT_EXTERNALLINK'] = {
-				text = db.TUTORIAL.SLASH.EXTERNALLINK:format(self.tooltipText),
-				button1 = CLOSE,
-				showAlert = true,
-				timeout = 0,
-				whileDead = true,
-				hideOnEscape = true,
-				preferredIndex = 3,
-				hasEditBox = 1,
-				enterClicksFirstButton = true,
-				exclusive = true,
-				OnAccept = ConsolePort.ClearPopup,
-				OnCancel = ConsolePort.ClearPopup,
-				OnShow = function(self, data)
-					self.editBox:SetText(data)
-				end,
-			}
-			ConsolePort:ShowPopup('CONSOLEPORT_EXTERNALLINK', nil, nil, self.link)
+			ConsolePortOldConfig:OpenCategory("About")
 		end
 
 		local first, last
@@ -1031,7 +1011,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		for i, info in pairs({
 			{'CP', L.LINK_CP, 'https://github.com/leoaviana/ConsolePortLK/'},
 			{'WP', L.LINK_WM, 'https://github.com/leoaviana/WoWpadX/releases/latest'}, 
-			{'PP', L.LINK_PAYPAL, 'https://www.paypal.com/donate/?hosted_button_id=CSQHQU3DNCRYU'},
+			{'DN', L.LINK_DN, ''},
 		})
 		do
 			local id, tooltip, link = unpack(info)

@@ -1,6 +1,8 @@
 local _, L = ...
 local UI, Control, Data = ConsolePortUI:GetEssentials()
 local KEY = Data.KEY
+local CPAPI = Data.CPAPI
+
 local LootFrame = CPAPI.CreateFromMixins(ConsolePortMenuSelectMixin)
 L.LootFrameLogicMixin = LootFrame
 

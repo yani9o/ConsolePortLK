@@ -37,6 +37,8 @@ simultaneously loaded. Do not copy this library for other uses.
 
 local _, ab = ...
 local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
+
 local lib = {}
 ab.libs = ab.libs or {}
 ab.libs.acb = lib
@@ -95,6 +97,11 @@ local Macro_MT = {__index = Macro}
 local Custom = setmetatable({}, {__index = Generic})
 local Custom_MT = {__index = Custom}
 
+
+local Dummy = setmetatable({}, {__index = Generic})
+local Dummy_MT = {__index = Dummy}
+
+
 local type_meta_map = {
 	empty  = Generic_MT,
 	action = Action_MT,
@@ -102,7 +109,8 @@ local type_meta_map = {
 	spell  = Spell_MT,
 	item   = Item_MT,
 	macro  = Macro_MT,
-	custom = Custom_MT
+	custom = Custom_MT,
+    dummy  = Dummy_MT,
 }
 
 local ButtonRegistry, ActiveButtons, ActionButtons, NonActionButtons = lib.buttonRegistry, lib.activeButtons, lib.actionButtons, lib.nonActionButtons
@@ -129,6 +137,19 @@ local DefaultConfig = {
 	keyBoundTarget = false,
 	clickOnDown = false,
 }
+
+lib.SetDummy = function(button, icon, tooltip)
+    button._state_type = 'dummy'
+    button._state_action = { icon = icon, tooltip = tooltip }
+    setmetatable(button, Dummy_MT)
+end
+
+lib.RestoreButton = function(button)
+    button._state_type = nil
+    button._state_action = nil
+    setmetatable(button, Generic_MT)
+    button:UpdateAction(true)  -- force=true to guarantee redraw
+end
 
 --- Create a new action button.
 -- @param id Internal id of the button (not used by LibActionButton-1.0, only for tracking inside the calling addon)
@@ -182,12 +203,17 @@ function lib:CreateButton(id, name, header, config)
 	return button
 end
 
+local CHILD_UPDATE_STATE 
+
 function SetupSecureSnippets(button)
+
 	button:Execute([[States = newtable("CTRL-SHIFT-", "CTRL-", "SHIFT-", "")]]) 
 	button:SetAttribute("_custom", Custom.RunCustom)
 	-- secure UpdateState(self, state)
 	-- update the type and action of the button based on the state
-	button:SetAttribute("UpdateState", [[
+	button:SetAttribute("UpdateState", [[ 
+    	if self:GetAttribute("type") == "dummy" then return end
+
 		local state = ...
 		local _type = type  
 
@@ -213,11 +239,38 @@ function SetupSecureSnippets(button)
 
 	button:SetAttribute("actionpage", 1) 
 
-	-- this function is invoked by the header when the state changes
-	button:SetAttribute("_childupdate-state", [[ 
-		control:RunFor(self, self:GetAttribute("UpdateState"), message) 
-        control:CallMethod("CallMethodFromFrame", self:GetName(), "UpdateAction")
-	]])
+	CHILD_UPDATE_STATE = [[
+	 	-- Dummy buttons are frozen, never update state
+    	if self:GetAttribute("type") == "dummy" then return end
+
+		local state = message or ""
+		local bar = self:GetParent()
+
+		if bar:GetAttribute("isTriple") then
+			local myMod = self:GetAttribute("modifier") or ""
+			if myMod == "" then
+				control:CallMethod("CallMethodFromFrame", self:GetName(), "SetSuppressVisual", true)
+    			control:RunFor(self, self:GetAttribute("UpdateState"), state)
+    			control:CallMethod("CallMethodFromFrame", self:GetName(), "SetSuppressVisual", false)
+
+				-- ONLY do full visual update on nomod or both-mod (or if button is a back button like triggers, paddles, etc.)
+				-- SKIP visual update on single modifier (SHIFT- or CTRL-)
+				if (state ~= "SHIFT-" and state ~= "CTRL-") or self:GetName():match("^CPB_T[1-6]") then
+					control:RunFor(self, self:GetAttribute("UpdateState"), state)
+					control:CallMethod("CallMethodFromFrame", self:GetName(), "UpdateAction")
+				end	
+			else
+				control:RunFor(self, self:GetAttribute("UpdateState"), state)
+				control:CallMethod("CallMethodFromFrame", self:GetName(), "UpdateAction")
+			end
+		else
+			control:RunFor(self, self:GetAttribute("UpdateState"), message)
+			control:CallMethod("CallMethodFromFrame", self:GetName(), "UpdateAction")
+		end
+	]]
+
+	button:SetAttribute("_childupdate-state", CHILD_UPDATE_STATE)
+	lib.childUpdateSnippet = function() return CHILD_UPDATE_STATE end
  
 	button:SetAttribute("_childupdate-actionpage", [[
 		self:SetAttribute('actionpage', message)
@@ -361,6 +414,7 @@ function SetupSecureSnippets(button)
 	]])
 
 	button:SetScript("OnAttributeChanged", function(self, ...)
+		if self.suppressVisualUpdate then return end
 		button:ButtonContentsChanged(...) 
 	end)
 end
@@ -380,7 +434,8 @@ function WrapOnClick(button)
 	]]) 
 	-- Wrap OnClick, to catch changes to actions that are applied with a click on the button.
 	button.header:WrapScript(button, "OnClick", [[
-	
+		if self:GetAttribute("type") == "dummy" then return end
+
 		if down then
 			if self:GetAttribute("type") == "action" then
 				local type, action = GetActionInfo(self:GetAttribute("action"))
@@ -396,8 +451,7 @@ function WrapOnClick(button)
 		end
 	]])
 	button.header:WrapScript(button, "PostClick", [[
-	
-
+		if self:GetAttribute("type") == "dummy" then return end
 		self:SetAttribute("type", self:GetAttribute("action_field"))
 	]]) 
 end
@@ -416,6 +470,10 @@ end
 function Generic:ClearSetPoint(...)
 	self:ClearAllPoints()
 	self:SetPoint(...)
+end
+
+function Generic:SetSuppressVisual(val)
+    self.suppressVisualUpdate = val or nil
 end
 
 function Generic:NewHeader(header)
@@ -962,13 +1020,43 @@ function Generic:FadeIn(newAlpha, speed)
 	UIFrameFadeIn(self, speed or 0.2, self:GetAlpha(), newAlpha or 1)
 end
 
-function Generic:FadeOut(newAlpha, speed)
+function Generic:FadeOut(newAlpha, speed) 
+
+	if self.isMainButton then
+        -- Instead of fading to 0, Triple buttons stay at 30% alpha when inactive
+        UIFrameFadeOut(self, speed or 0.2, self:GetAlpha(), 1)
+        return
+    end
 	if not self.isMainButton and not self.isGlowing and not self.isOnCooldown and not self.forceShow and not self.showGrid then
 		UIFrameFadeOut(self, speed or 0.2, self:GetAlpha(), newAlpha or 0)
 	end
 end 
 
 function Generic:UpdateAction(force)
+	if self.suppressVisualUpdate then return end
+    
+    -- Triple mode: suppress visual redraw on center buttons during single modifier
+    local bar = self.header
+    if bar and bar:GetAttribute("isTriple") then
+        local myMod = self:GetAttribute("modifier") or ""
+		if self:GetName():match("^CPB_T[1-6]") then
+			--continue
+		elseif myMod == "" then
+            local state = self:GetAttribute("state")
+            if state == "SHIFT-" or state == "CTRL-" then
+                -- Update internal tracking only, no visual redraw
+                local t, a = self:GetAction()
+				if t ~= self._state_type then
+					local meta = type_meta_map[t] or type_meta_map.empty
+					setmetatable(self, meta)
+				end
+                self._state_type = t
+                self._state_action = a
+                return
+            end
+        end
+    end
+
 	local type, action = self:GetAction()
 	if force or (type ~= self._state_type) or (action ~= self._state_action) then
 		-- type changed, update the metatable
@@ -1036,8 +1124,26 @@ function Update(self)
 	end
  
 	self.icon:SetDesaturated(not texture and true or false)
-	SetPortraitToTexture(self.icon, texture or [[Interface\AddOns\ConsolePortBar\Textures\ability-empty]])   
+	
+	if self.isSquareMode then
+        -- 1. SQUARE: Raw texture with a clean 7% "Trim" to remove the black edge
+        self.icon:SetTexture(texture or self.emptyIcon)
+        self.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    else
+        -- 2. ROUND: Reset coordinates to full and let the Portrait system handle the circle
+        self.icon:SetTexCoord(0, 1, 0, 1)
+		if self.mod and self.mod ~= '' then
+            self.icon:SetTexture(texture or self.emptyIcon)
+        else
+            SetPortraitToTexture(self.icon, texture or self.emptyIcon)
+        end
+    end
 
+    if ab.libs.slicemask then
+        ab.libs.slicemask:OnIconUpdated(self)
+    end
+
+	
 	UpdateCount(self)
 
 	UpdateNewAction(self)
@@ -1056,15 +1162,35 @@ function Update(self)
 				control:RunFor(frame, frame:GetAttribute("OnStateChanged"), %s, %s, %s)
 			]]):format(formatHelper(self:GetAttribute("state")), formatHelper(self._state_type), formatHelper(self._state_action)))
 		end
-	end
+	end 
 end
  
 function UpdateButtonState(self)
-	if self:IsCurrentlyActive() or self:IsAutoRepeat() then
-		self:SetChecked(1)
-	else
-		self:SetChecked(0)
-	end
+    if self:IsCurrentlyActive() or self:IsAutoRepeat() then
+        self:SetChecked(1) 
+        if self.FakeChecked then 
+            local state = self:GetAttribute("state")
+            local myMod = self:GetAttribute("modifier") or ""
+            if myMod == "" and self.tripleShims and (state == "SHIFT-" or state == "CTRL-") then
+                self.FakeChecked:SetAlpha(0)
+                local shim = self.tripleShims[state]  
+                if shim and shim.FakeChecked then 
+                    shim.FakeChecked:SetAlpha(1)
+                end
+            else
+                self.FakeChecked:SetAlpha(1)
+            end
+        end
+    else
+        self:SetChecked(0)
+        if self.FakeChecked then self.FakeChecked:SetAlpha(0) end
+        -- Also clear all shim checked states
+        if self.tripleShims then
+            for _, shim in pairs(self.tripleShims) do
+                if shim.FakeChecked then shim.FakeChecked:SetAlpha(0) end
+            end
+        end
+    end
 end
 
 function UpdateUsable(self)
@@ -1157,6 +1283,8 @@ function UpdateTooltip(self)
 		self.UpdateTooltip = nil
 	end
  
+	if(self._state_type == "dummy") then return end
+
 	local currentModifier = self.isMainButton and ConsolePort:GetCurrentModifier() or self.mod
 	local bindingString = ConsolePort:GetFormattedButtonCombination(self.plainID, currentModifier, 20, true)
 	if bindingString and GameTooltip:IsVisible() then
@@ -1169,6 +1297,11 @@ end
 
 function UpdateNewAction(self)
 	-- special handling for "New Action" markers
+	if(self.isSquareMode) then
+		self.NewActionTexture:Hide();
+		return
+	end
+
 	if self.NewActionTexture then
 		if self._state_type == "action" then -- and lib.ACTION_HIGHLIGHT_MARKS[self._state_action] then
 			self.NewActionTexture:Show()
@@ -1319,3 +1452,40 @@ Custom.GetSpellId              = function(self) return nil end
 Custom.RunCustom               = function(self, unit, button) return self._state_action.func(self, unit, button) end
 
 -----------------------------------------------------------
+
+Dummy.GetActionText           = function(self) return "" end
+Dummy.GetCount                = function(self) return 0 end
+Dummy.GetCooldown             = function(self) return 0, 0, 0 end
+Dummy.IsAttack                = function(self) return nil end
+Dummy.IsEquipped              = function(self) return nil end
+Dummy.IsCurrentlyActive       = function(self) return nil end
+Dummy.IsAutoRepeat            = function(self) return nil end
+Dummy.IsUsable                = function(self) return true end
+Dummy.IsConsumableOrStackable = function(self) return nil end
+Dummy.IsUnitInRange           = function(self, unit) return nil end
+Dummy.HasAction  = function(self) return true end
+Dummy.GetTexture = function(self) return self._state_action and self._state_action.icon end
+Dummy.SetTooltip = function(self)
+    local tooltip = self._state_action and self._state_action.tooltip
+    if tooltip then
+        GameTooltip:SetText(tooltip)
+        return true
+    end
+end
+Dummy.GetSpellId              = function(self) return nil end
+Dummy.OnEnter = function(self)
+    self.header:FadeIn(self.header:GetAlpha())
+    self:FadeIn()
+    if self.config.tooltip ~= "disabled" then
+        GameTooltip_SetDefaultAnchor(GameTooltip, self)
+        local tooltip = self._state_action and self._state_action.tooltip
+        if tooltip then
+            GameTooltip:SetText(tooltip)
+            GameTooltip:Show()
+        end
+    end
+end
+Dummy.UpdateAction = function(self)
+    if self._state_type ~= 'dummy' then return end
+    Update(self)
+end

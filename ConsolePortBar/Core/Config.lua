@@ -1,4 +1,5 @@
 local _, ab = ...
+local CPAPI = ConsolePort:GetData().CPAPI
 local db = ab.data
 local Bar = ab.bar
 local WindowMixin, Generic, Layout, Button, Position, Color, Bool, Profiler, Preset = {}, {}, {}, {}, {}, {}, {}, {}, {}
@@ -36,32 +37,35 @@ function Button:OnShow()
 	local size = entry and entry.size
 	local dir = entry and entry.dir
 	self:SetChecked(entry and true or false)
-	if dir then
-	--	self.direction:Enable()
-		self.direction:SetText(dir)
-		self.Wrapper:UpdateOrientation(dir)
-	else
-	--	self.direction:Disable()
-		self.direction:SetText('')
-	end
-	if size then
-	--	self.size:Enable()
-		self.size:SetNumber(size)
-		self.Wrapper:SetSize(size)
-	else
-	--	self.size:Disable()
-		self.size:SetText('')
-	end
-	if point then
-		self.Wrapper:SetPoint(unpack(point))
-		self.Wrapper:Show()
-	--	self.point:Enable() self.xOffset:Enable() self.yOffset:Enable()
-		self.point:SetText(point[1]) self.xOffset:SetText(point[2]) self.yOffset:SetText(point[3])
-	else
-		self.Wrapper:SetPoint()
-		self.Wrapper:Hide()
-	--	self.size:Disable() self.point:Disable() self.xOffset:Disable() self.yOffset:Disable()
-		self.point:SetText('') self.xOffset:SetText('') self.yOffset:SetText('')
+
+	if self.Wrapper then
+		if dir then
+		--	self.direction:Enable()
+			self.direction:SetText(dir)
+			self.Wrapper:UpdateOrientation(dir)
+		else
+		--	self.direction:Disable()
+			self.direction:SetText('')
+		end
+		if size then
+		--	self.size:Enable()
+			self.size:SetNumber(size)
+			--self.Wrapper:SetSize(size)
+		else
+		--	self.size:Disable()
+			self.size:SetText('')
+		end
+		if point then
+			self.Wrapper:SetPoint(unpack(point))
+			self.Wrapper:Show()
+		--	self.point:Enable() self.xOffset:Enable() self.yOffset:Enable()
+			self.point:SetText(point[1]) self.xOffset:SetText(point[2]) self.yOffset:SetText(point[3])
+		else
+			self.Wrapper:SetPoint()
+			self.Wrapper:Hide()
+		--	self.size:Disable() self.point:Disable() self.xOffset:Disable() self.yOffset:Disable()
+			self.point:SetText('') self.xOffset:SetText('') self.yOffset:SetText('')
+		end
 	end
 end
 
@@ -441,7 +445,7 @@ function Profiler:GetPresetFromPool()
 end
 
 function Profiler:AddPreset(name, cfg, class)
-	local profile = self:GetPresetFromPool()
+	local profile = self:GetPresetFromPool() 
 	profile:SetData(name, cfg, class)
 end
 
@@ -454,7 +458,11 @@ function Profiler:OnShow()
 	local current = ab.cfg
 	local compare = db.table.compare
 
-	self:AddPreset(REFORGE_CURRENT, current)
+	
+	color = RAID_CLASS_COLORS[select(2,UnitClass('player'))]
+	escapeColor = string.format("|cff%02x%02x%02x", color.r*255, color.g*255, color.b*255) 
+
+	self:AddPreset(escapeColor..'Current', current)
 
 	for name, settings in db.table.spairs(ab:GetPresets()) do
 		self:AddPreset(name, settings)

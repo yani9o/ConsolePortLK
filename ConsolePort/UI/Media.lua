@@ -1,3 +1,6 @@
+local _, db = ...
+local CPAPI = db.CPAPI
+
 local UI, MEDIA = ConsolePortUI
 local _, class = UnitClass("player")
 local cc = RAID_CLASS_COLORS[class]

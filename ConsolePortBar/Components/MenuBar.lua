@@ -1,5 +1,6 @@
 local addOn, ab = ...
 local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
 local L = db.ACTIONBAR
 local Bar = ab.bar
 ---------------------------------------------------------------

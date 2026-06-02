@@ -1,4 +1,5 @@
 local _, db = ...
+local CPAPI = db.CPAPI
 ---------------------------------------------------------------
 ConsolePortMenuButtonMixin = CPAPI.CreateFromMixins(ConsolePortActionButtonMixin)
 ---------------------------------------------------------------

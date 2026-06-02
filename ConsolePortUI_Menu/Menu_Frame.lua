@@ -1,5 +1,6 @@
 local UI, an, L = ConsolePortUI, ...
 local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
 local ICON = 'Interface\\Icons\\%s'
 local Button = L.Button
 
@@ -240,8 +241,9 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 						end
 
 						SetPortraitToTexture(self.Icon, mountIcon)
-					end,
-					OnClick = function(self) ToggleCharacter('PetPaperDollFrame') end,
+					end, 
+					RefTo   = _G["CollectionsMicroButton"],
+					OnClick = (not _G["CollectionsMicroButton"]) and function(self) ToggleCharacter('PetPaperDollFrame') end or nil,
 				},
 			},
 		},
@@ -325,24 +327,31 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					Point 	= {'TOP', 'parent.Achievements', 'BOTTOM', 0, -16},
 					Desc	= BUG_CATEGORY14,
 					Img 	= [[Interface\ICONS\Ability_Parry]],
-					OnClick = function(self) TogglePVPFrame() end,
+					OnClick = function(self)
+						if TogglePVPUIFrame then
+							TogglePVPUIFrame()
+						else
+							TogglePVPFrame()
+						end
+					end,
+
 					Attrib 	= {hidemenu = true},
 					OnLoadHook = function(self) SetPortraitToTexture(self.Icon, [[Interface\ICONS\Ability_Parry]]) end,
-
 				},
-				PVEFinder  = {
-					Type 	= 'Button',
-					Setup 	= baseTemplates,
-					Mixin 	= Button,
-					ID 		= 5,
-					Point 	= {'TOP', 'parent.PVPFinder', 'BOTTOM', 0, 0},
-					Desc	= DUNGEONS_BUTTON,
-					Img 	= [[Interface\LFGFRAME\UI-LFG-PORTRAIT]],
-					RefTo 	= LFDMicroButton,
-					Attrib 	= {hidemenu = true},
-				},
+					PVEFinder  = {
+						Type 	= 'Button',
+						Setup 	= baseTemplates,
+						Mixin 	= Button,
+						ID 		= 5,
+						Point 	= {'TOP', 'parent.PVPFinder', 'BOTTOM', 0, 0},
+						Desc	= DUNGEONS_BUTTON,
+						Img 	= [[Interface\LFGFRAME\UI-LFG-PORTRAIT]],
+						RefTo 	= LFDMicroButton,
+						Attrib 	= {hidemenu = true},
+					},
 				
 				-- Custom client specifics
+
 				PathToAscension  = {
 					Type 	= 'Button',
 					Setup 	= baseTemplates,
@@ -357,6 +366,8 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 						condition = string.format('return %s', tostring(IsCustomClient and IsCustomClient == "Ascension"))
 					},
 				},
+
+
 				Trials  = {
 					Type 	= 'Button',
 					Setup 	= baseTemplates,
@@ -372,6 +383,21 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					},
 				},
 
+				EncounterJournal  = {
+					Type 	= 'Button',
+					Setup 	= baseTemplates,
+					Mixin 	= Button,
+					ID 		= 8,
+					Point 	= {'TOP', 'parent.PVEFinder', 'BOTTOM', 0, 0},
+					Desc	= EncounterJournalMicroButton and EncounterJournalMicroButton.tooltipText or ENCOUNTER_JOURNAL,
+					RefTo 	= EncounterJournalMicroButton,
+					Img 	= [[Interface\ICONS\_CallToArmsRed]],
+					Attrib 	= {
+						hidemenu = true,
+						condition = string.format('return %s', tostring(EncounterJournalMicroButton and true or nil))
+					},
+				},
+
 				-----------
 
 				Teleport  = {
@@ -379,7 +405,7 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					Setup 	= baseTemplates,
 					Mixin 	= Button,
 					ID 		= 8,
-					Point 	= {'TOP', IsCustomClient and 'parent.Trials' or 'parent.PVEFinder', 'BOTTOM', 0, 0},
+					Point 	= {'TOP', IsCustomClient and 'parent.Trials' or (EncounterJournalMicroButton and 'parent.EncounterJournal' or 'parent.PVEFinder'), 'BOTTOM', 0, 0},
 					Img 	= ICON:format('Spell_Shadow_Teleport'),  Attrib 	= {
 						hidemenu 	= true,
 						condition 	= 'return PlayerInGroup()',
@@ -577,7 +603,7 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					ID 		= 6,
 					Point 	= {'TOP', 'parent.Video', 'BOTTOM', 0, 0},
 					Desc	= VOICE_SOUND, 
-					RefTo 	= IsCustomClient and EscapeMenuButton5 or GameMenuButtonSoundOptions,
+					RefTo 	= IsCustomClient and EscapeMenuButton5 or (GameMenuButtonAudioOptions and GameMenuButtonAudioOptions or GameMenuButtonSoundOptions),
 					Img 	= [[Interface\FriendsFrame\PlusManz-BattleNet]],
 				},
 				Interface  = {
@@ -639,7 +665,7 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					ID 		= 11,
 					Point 	= {'TOP', 'parent.KeyBindings', 'BOTTOM', 0, 0},
 					Desc	= HELP_LABEL, 
-					RefTo 	= HelpMicroButton,
+					RefTo 	= GameMenuButtonHelp and GameMenuButtonHelp or HelpMicroButton,
                     Attrib 	= {hidemenu = true},
 					Img 	= ICON:format('INV_Misc_QuestionMark'),
 					OnLoadHook = function(self) SetPortraitToTexture(self.Icon, ICON:format('INV_Misc_QuestionMark')) end,

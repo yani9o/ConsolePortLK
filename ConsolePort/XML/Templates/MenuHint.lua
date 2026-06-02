@@ -4,6 +4,10 @@ local _, db = ...
 ----------------------------------
 ConsolePortHintMixin = {}
 
+function ConsolePortHintMixin:GetCPAPI()
+	return db.CPAPI
+end
+
 function ConsolePortHintMixin:OnLoad()
 	self.bar = self:GetParent()
 	self.Text:SetShadowOffset(2, -2)

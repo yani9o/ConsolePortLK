@@ -2,6 +2,9 @@
 -- This code snippet hides and modifies the default action bars.
 
 local _, ab = ...
+local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
+
 local Bar = ab.bar
 local red, green, blue = ab.data.Atlas.GetCC()
 

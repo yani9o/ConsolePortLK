@@ -1,5 +1,6 @@
 ---------------------------------------------------------------
 local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
 local HANDLE, WrapperMixin = {}, {}
 ---------------------------------------------------------------
 local an, ab = ...
@@ -206,57 +207,145 @@ function WrapperMixin:SetPoint(...)
 end
 
 function WrapperMixin:SetSize(new)
-	local main = self['']
-	for mod, button in pairs(self.Buttons) do
-		local b, t, o -- button size, texture size, offset value
-		if mod == '' then -- if nomod, handle separately
-			b = new -- 64
-			t = new
-			o = new * ( 82 / size )
-			button.shadow:SetSize(o, o)
-		else -- calculate size for modifier buttons to maintain correct ratio
-			b = new * ( smallSize / size )
-			t = new * ( tSize / size ) * (mod == 'CTRL-SHIFT-' and .9 or 1)
-			o = ( ( (mod == 'CTRL-SHIFT-') and ofsB or ofs ) / size )
-			local pT = mods[mod][button.orientation]
-			if pT then
-				local p, rel, x, y = unpack(pT)
-				local nX = x * o--x < 0 and -o or x == 0 and 0 or o
-				local nY = y * o--y < 0 and -o or y == 0 and 0 or o
-				button:SetPoint(p, main, rel, nX, nY)
-				button:Show()
-			end
-		end
-		for _, parentKey in pairs(adjustTextures) do
-			local texture = button[parentKey]
-			texture:ClearAllPoints()
-			texture:SetPoint('CENTER', 0, 0)
-			texture:SetSize(t, t)
-		end
-		button:SetSize(b, b)
-	end
+    local preset = ab.cfg
+    local layout = preset and preset.layout
+    local isTriple = preset and preset.isTriple
+    local bar = ConsolePortBar 
+    local main = self['']
+
+    if not self.Buttons or not main then return end
+
+    for mod, button in pairs(self.Buttons) do
+        local layoutData = layout and layout[button.id]
+
+        if isTriple and layoutData and layoutData.point then
+            -- Absolute Parenting to prevent "Scrambling"
+            if button:GetParent() ~= bar then
+                button:SetParent(bar)
+            end
+            
+            button:ClearAllPoints()
+            -- Force absolute coordinates from Lookup.lua
+            button:SetPoint(unpack(layoutData.point))
+            button:SetSize(layoutData.size or new, layoutData.size or new)
+            
+            button.isMainButton = true 
+            button:Show()
+            button:SetAlpha(1)
+
+            -- Re-anchor hotkeys to top
+            local hotkey = button.hotkey or button.hotkey1
+            if hotkey then
+                hotkey:ClearAllPoints()
+                hotkey:SetPoint("TOP", button, "TOP", 0, 10)
+                hotkey:SetAlpha(1)
+                hotkey:Show()
+            end
+        else
+            -- MINIMAL MODE Logic
+            if mod ~= '' then
+                if button:GetParent() ~= main then button:SetParent(main) end
+            elseif button:GetParent() ~= bar then
+                button:SetParent(bar)
+            end
+            
+            local b, t, o
+            if mod == '' then
+                b, t = new, new
+                o = new * (82 / 64)
+                if button.shadow then button.shadow:SetSize(o, o) end
+            else 
+                b = new * (46 / 64) 
+                t = new * (58 / 64) 
+                if mod == 'CTRL-SHIFT-' then t = t * 0.9 end
+                o = (((mod == 'CTRL-SHIFT-') and 21 or 38) / 64)
+                
+                local pT = mods[mod] and mods[mod][button.orientation]
+                if pT then
+                    local p, rel, x, y = unpack(pT)
+                    button:ClearAllPoints()
+                    button:SetPoint(p, main, rel, x * o, y * o)
+                    button:Show()
+                end
+            end
+            
+            for _, parentKey in pairs(adjustTextures) do
+                local tex = button[parentKey]
+                if tex then
+                    tex:ClearAllPoints()
+                    tex:SetPoint('CENTER', 0, 0)
+                    tex:SetSize(t, t)
+                end
+            end
+            button:SetSize(b, b)
+        end
+        
+        -- Final texture sync
+        local finalSize = button:GetWidth()
+        for _, parentKey in pairs(adjustTextures) do
+            local tex = button[parentKey]
+            if tex then tex:SetSize(finalSize, finalSize) end
+        end
+    end
 end
 
 function WrapperMixin:UpdateOrientation(orientation)
-	for mod, button in pairs(self.Buttons) do
-		if not button.isMainButton then
-			button:ClearAllPoints()
-			button:Hide()
-			button.orientation = orientation
-			local coords = modcoords[mod][orientation]
-			local mask   = masks[mod][orientation]
-			local swipe  = swipes[mod][orientation]
-			if coords and mask then
-				for _, parentKey in pairs(adjustTextures) do
-					button[parentKey]:SetTexCoord(unpack(coords))
-				end
-	--			button.Mask:SetTexture(mask)
-	--			button.Flash:SetTexture(mask)
-			--	button.cooldown:SetSwipeTexture(swipe)
-			end
-		end
-	end
-	self:SetSize(self['']:GetSize())
+    local SliceMask = ab.libs.slicemask
+    local preset = ab.cfg
+    local isTriple = preset and preset.isTriple
+
+    for mod, button in pairs(self.Buttons) do
+        button.orientation = orientation
+        local coords = modcoords[mod] and modcoords[mod][orientation]
+
+        -- TRIPLE MODE: promoted buttons are handled by OnLoad, skip mask
+        if isTriple and preset.layout and preset.layout[button.id] then
+            button.isMainButton = true
+            button:SetAlpha(1)
+            button:Show()
+            return
+        elseif not button.isMainButton then
+            button:ClearAllPoints()
+            button:Hide()
+        end
+
+        -- Apply textures
+        if coords then
+            for _, parentKey in pairs(adjustTextures) do
+                local tex = button[parentKey]
+                if tex then tex:SetTexCoord(unpack(coords)) end
+            end
+        end
+
+        -- Apply mask/swipe for non-main modifier buttons
+        if mod ~= '' and not button.isMainButton then
+            local mask  = masks[mod] and masks[mod][orientation]
+            local swipe = swipes[mod] and swipes[mod][orientation]
+
+            if mask then
+                button.Flash:SetTexture(mask)
+                -- button.Mask:SetTexture(mask) -- no-op in WotLK, kept for reference
+            end
+            if swipe then
+                --button.cooldown:SetSwipeTexture(swipe)
+            end
+
+            -- WotLK ScrollFrame mask approximation (non-square only)
+            if SliceMask and not button.isSquareMode then
+                SliceMask:Apply(button, mod, orientation)
+                if not button._sliceMaskHooked then
+                    button._sliceMaskHooked = true
+                    local orig = button.UpdateAction
+                    button.UpdateAction = function(self, ...)
+                        orig(self, ...)
+                        SliceMask:UpdateTexture(self)
+                    end
+                end
+            end
+        end
+    end
+
+    self:SetSize(self['']:GetSize())
 end
 
 function WrapperMixin:SetSwipeColor(r, g, b, a)
@@ -276,10 +365,156 @@ function WrapperMixin:ToggleModifiers(enabled)
 end
 
 function WrapperMixin:SetClassicBorders(enabled)
-	local normal = enabled and [[Interface\AddOns\ConsolePort\Textures\Button\Normal]]
-	local pushed = enabled and [[Interface\AddOns\ConsolePort\Textures\Button\Pushed]]
-	self[''].NormalTexture:SetTexture(normal or buttonTextures[''].normal)
-	self[''].PushedTexture:SetTexture(pushed or buttonTextures[''].pushed)
+    local useSquare = ab.cfg and ab.cfg.useSquareButtons
+    local isTriple = ab.cfg and ab.cfg.isTriple
+    local TEX = [[Interface\AddOns\ConsolePortBar\Textures\Button\%s]]
+    
+    for mod, button in pairs(self.Buttons) do
+        button.isSquareMode = useSquare
+        
+        -- Get the internal engine objects
+        local nt = button:GetNormalTexture()
+        local pt = button:GetPushedTexture()
+        local ht = button:GetHighlightTexture()
+        local ct = button:GetCheckedTexture()
+
+        if useSquare then
+			-- BLANK ARTIFACTS
+			if button.Shadow then button.Shadow:SetTexture(nil) end
+			if button.Mask then button.Mask:Hide() end
+			
+			-- APPLY RETAIL DIMENSIONS TO TEXTURES (52x51 for borders)
+			button.NormalTexture:ClearAllPoints()
+			button.NormalTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
+			button.NormalTexture:SetTexture(TEX:format("SquareNormal"))
+			button.NormalTexture:SetTexCoord(0, 1, 0, 1) 
+			button.NormalTexture:SetSize(52, 51)
+
+			button.PushedTexture:ClearAllPoints()
+			button.PushedTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
+			button.PushedTexture:SetTexture(isTriple and TEX:format("SquareNormal") or TEX:format("SquarePushed"))
+			button.PushedTexture:SetSize(52, 51)			
+
+			button.HighlightTexture:ClearAllPoints() 
+			button.HighlightTexture:SetSize(46, 45) 
+			button.HighlightTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
+			button.HighlightTexture:SetTexture(TEX:format("SquareHilite"))
+			button.HighlightTexture:SetTexCoord(0, 1, 0, 1)
+
+			button.CheckedTexture:ClearAllPoints()
+			button.CheckedTexture:SetSize(46, 45) 
+			button.CheckedTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
+			button.CheckedTexture:SetTexture(not isTriple and TEX:format("SquareHilite") or nil)
+			
+			-- ICON (The icon should be exactly 45x45 to fill the button)
+			button.icon:ClearAllPoints()
+			button.icon:SetSize(40, 40)
+			button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
+			
+			button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty2]]
+			
+			-- COOLDOWN (Match the Retail paddings: 3px in, 2px down)
+			button.cooldown:SetAlpha(1)
+			button.cooldown:Show()
+			button.cooldown:ClearAllPoints()
+			button.cooldown:SetAllPoints(button) -- Ensure it covers the square icon
+			button.cooldown:SetFrameLevel(button:GetFrameLevel() + 5)
+			button.cooldown:SetFrameStrata("MEDIUM")
+
+			-- 2. KILL THE ROUND OBJECTS
+			if button.roundcd then
+				button.roundcd:Hide()
+				button.roundcd:SetAlpha(0)
+				if button.roundcd.spinner then
+					button.roundcd.spinner:Hide()
+					button.roundcd.spinner:SetAlpha(0)
+				end
+			end
+
+			local shadow = button.shadow or (mod == '' and self[''].shadow)
+    		if shadow then 
+        		shadow:Hide() 
+        		shadow:SetAlpha(0)
+    		end
+        else
+            -- 1. RESTORE ORIGINAL BUTTON SIZE (Standard 64x64)
+            button:SetSize(64, 64)
+
+            -- 2. RESTORE ROUND ASSETS
+            local isMain = (mod == '')
+            local theme = isMain and "BigNormal" or (mod == 'CTRL-SHIFT-' and "M3" or "M1")
+            local hilite = isMain and "BigHilite" or (mod == 'CTRL-SHIFT-' and "M3Hilite" or "M1Hilite")
+
+            -- Normal/Pushed logic
+            nt:SetTexture(TEX:format(theme))
+            nt:SetSize(64, 64) -- Or use your tSize variable
+            nt:ClearAllPoints()
+            nt:SetPoint("CENTER", button, "CENTER", 0, 0)
+            nt:SetTexCoord(0, 1, 0, 1)
+
+            pt:SetTexture(TEX:format(hilite))
+            pt:SetSize(64, 64)
+            pt:ClearAllPoints()
+            pt:SetPoint("CENTER", button, "CENTER", 0, 0)
+
+            -- Highlight/Checked logic
+            ht:SetTexture(TEX:format(hilite))
+            ht:SetSize(64, 64)
+            ht:ClearAllPoints()
+            ht:SetPoint("CENTER", button, "CENTER", 0, 0)
+
+            ct:SetTexture(TEX:format(hilite))
+            ct:SetSize(64, 64)
+            ct:ClearAllPoints()
+            ct:SetPoint("CENTER", button, "CENTER", 0, 0)
+
+			-- ICON (The icon should be exactly 45x45 to fill the button)
+			button.icon:ClearAllPoints()
+			button.icon:SetSize(64, 64)
+			button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
+
+			button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty]]
+
+            -- 3. RESTORE ROUND ARTIFACTS
+            if button.Shadow then 
+                button.Shadow:SetTexture([[Interface\AddOns\ConsolePort\Textures\Button\Shadow]]) 
+                --button.Shadow:Show() 
+            end
+            --if button.Mask then button.Mask:Show() end
+            
+            local shadowFrame = button.shadow or (mod == '' and self[''].shadow)
+            if shadowFrame then 
+                shadowFrame:Show() 
+                shadowFrame:SetAlpha(0.3) -- Original XML alpha
+            end
+
+            -- 4. RESTORE ROUND COOLDOWN (Handover)
+            -- Hide the standard Blizzard clock and bring back the spinner
+            button.cooldown:SetAlpha(0)
+            button.cooldown:SetFrameStrata("LOW") -- Return to background
+
+            if button.roundcd then
+                button.roundcd:Show()
+                button.roundcd:SetAlpha(1)
+                if button.roundcd.spinner then
+                    button.roundcd.spinner:Show()
+                    button.roundcd.spinner:SetAlpha(0)
+                end
+            end
+
+            -- 5. RESTORE WING COORDINATES (For Modifiers)
+            if not isMain then
+                local orientation = button.orientation or "down"
+                local coords = modcoords[mod] and modcoords[mod][orientation]
+                if coords then
+                    nt:SetTexCoord(unpack(coords))
+                    ht:SetTexCoord(unpack(coords))
+                end
+            end
+        end
+        
+        button:UpdateAction(true)
+    end
 end
 
 function WrapperMixin:SetBorderColor(r, g, b, a)
@@ -322,9 +557,17 @@ end
 local function CreateButton(parent, id, name, modifier, size, texSize, config)
 	local button = acb:CreateButton(id, name, parent, config)
 
+	button.NormalTexture = button:GetNormalTexture()
 	button.PushedTexture = button:GetPushedTexture()
 	button.HighlightTexture = button:GetHighlightTexture()
 	button.CheckedTexture = button:GetCheckedTexture()
+ 
+	button.Flash = _G[name..'Flash']
+	button.Mask = _G[name..'IconMask']
+	button.Border = _G[name..'Border']
+	button.Shadow = _G[name..'Shadow']
+	button.cooldown = _G[name..'Cooldown'];
+	button.roundcd = _G[name..'RCooldown']
 
 	local textures = buttonTextures[modifier]
 
@@ -420,16 +663,18 @@ function HANDLE:Create(parent, id, orientation)
 	local main = wrapper['']
 	main.isMainButton = true
 
-	for mod, button in pairs(wrapper.Buttons) do
-		if not button.isMainButton then
-			-- Set this button to not update on modifier state
-			button:SetAttribute('_childupdate-state', nil)
-		end
-	end
-
 	main:SetFrameLevel(4)
 	main:SetAlpha(1)
 	main.hotkey = CreateMainHotkeyFrame(main, id)
+
+	for mod, button in pairs(wrapper.Buttons) do
+		if mod ~= '' then
+			-- Create a hotkey frame for the modified buttons for the triple preset, but make it hidden by default
+			button.hotkey = button.hotkey or CreateMainHotkeyFrame(button, id) 
+			button.hotkey:Hide()
+		end
+	end
+
 	main.shadow = CreateMainShadowFrame(main)
 	db.UIFrameFadeIn(main, 1, 0, 1)
 
@@ -484,6 +729,9 @@ function HANDLE:UpdateWrapperBindings(wrapper, bindings)
 	if InCombatLockdown() then return end;
 	
 	local main = wrapper['']
+
+	-- Skip dummy buttons entirely
+    if main and main._state_type == 'dummy' then return end
 
 	if bindings then
 		for modifier, button in pairs(wrapper.Buttons) do

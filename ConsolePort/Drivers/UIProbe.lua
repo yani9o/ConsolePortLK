@@ -6,6 +6,9 @@
 -- secure scope. A probed object needs to be signed or secure.
 -- Probed objects will become inherently secure after probing.
 
+local addOn, db = ...
+local CPAPI = db.CPAPI
+
 local Probe, _probeID = {}, 1
 
 local assert, mixin = assert, Mixin

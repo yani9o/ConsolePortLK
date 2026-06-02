@@ -8,6 +8,7 @@
 
 local addOn, db = ...
 ---------------------------------------------------------------
+local CPAPI = db.CPAPI
 		-- Resources
 local	KEY, SECURE, TEXTURE, M1, M2,
 		-- Override wrappers

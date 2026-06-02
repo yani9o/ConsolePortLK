@@ -2,6 +2,8 @@
 -- Radial.lua: Handles radial input (left stick & movement)
 ---------------------------------------------------------------
 local HANDLE, _, db = ConsolePortRadialHandler, ...
+
+local CPAPI = db.CPAPI
 ---------------------------------------------------------------
 
 local DEFAULT_BINDINGS, LOCAL_BINDINGS = {
@@ -278,10 +280,23 @@ local ENV_RADIAL = {
 			local button = self:GetFrameRef(control:RunAttribute('_getindex'))
 			if button then
 				local actionType = button:GetAttribute('type')
-				local actionID   = actionType and button:GetAttribute(actionType)
-				if actionID then
-					self:SetAttribute('type', actionType)
-					self:SetAttribute(actionType, actionID)
+				if actionType == 'macro' then
+					local macroID   = button:GetAttribute('macro')
+					local macrotext = button:GetAttribute('macrotext')
+					if macroID or macrotext then
+						self:SetAttribute('type', 'macro')
+						if macroID then
+							self:SetAttribute('macro', macroID)
+						else
+							self:SetAttribute('macrotext', macrotext)
+						end
+					end
+				elseif actionType then
+					local actionID = button:GetAttribute(actionType)
+					if actionID then
+						self:SetAttribute('type', actionType)
+						self:SetAttribute(actionType, actionID)
+					end
 				end
 			end
 			control:RunAttribute('_setindex', nil)

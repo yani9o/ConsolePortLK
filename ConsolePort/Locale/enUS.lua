@@ -113,7 +113,7 @@ TUTORIAL = {
 		-----------------------------------------------------------
 		TRIGGERHELP 		= 'These settings will change which graphics are displayed for your triggers and modifiers.\nIf you want to change your modifiers, you will also have to change them in your controller mapper.',
 		IBFULLHELP 			= 'Use one of your buttons to interact with objects and creatures.\nIn the case where you lack a target that befits the configured button\'s original action,\nyou will instead be able to interact with the world.\n\nExamples:\nA |cffff7575harmful|r spell will be cast upon a hostile target, but interact in all other cases.\nA |cff75ff75healing|r spell will be cast upon a friendly target, but interact in all other cases.\nA macro or a binding requires a target to be used, but interact in all other cases.',
-		IBLITEHELP 			= 'Use one of your buttons to interact with objects and creatures.\nThe button you assign here will always be used for this particular binding...\n  • You don\'t need to use standard interact button feature if you\'re \n     already using this one, but you can use both.',
+		IBLITEHELP 			= 'Use one of your buttons to interact with objects and creatures.\nThe button you assign here will always be used for this particular binding.',
 		TARGETAIHELP		= 'Smart interaction only:\nRemembers the NPCs you come in contact with and lets you interact with them.\n\nWith NPC nameplates:\nAllows you to interact with any NPC at all times.\n\nName-only mode:\nHide nameplate healthbars on friendly units, but show on enemies in combat.',
 		HIGHLIGHTHELP 		= 'Preview your next target before you switch to it.\nIf you\'re struggling with reliable tab-targeting, set this to |cff75ff75Always on|r.',
 		IBFULLREC			= '|TInterface\\Buttons\\AdventureGuideMicrobuttonAlert:32:32:-4:0|t|cFFFFFFFFRecommended setting:|r\n  For best overall behaviour,\n  choose a button on which the\n  underlying action is a damaging spell\n  that requires an enemy target to cast.',
@@ -168,7 +168,7 @@ TUTORIAL = {
 		-----------------------------------------------------------
 		LINK_WM 			= 'WoWpadX on GitHub',
 		LINK_CP 			= 'ConsolePortLK on GitHub', 
-		LINK_PAYPAL			= 'Paypal donation',
+		LINK_DN				= 'Support the project',
 	},
 	TOTEM = {
 		TOTEM_EARTH			= 'Earth',

@@ -96,6 +96,68 @@
 		</Scripts>
 	</Frame>
 
+	<Frame name="ConsolePortUnitMenuHeaderTemplate" virtual="true">
+		<Size x="300" y="28"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Line"
+					file="Interface\Common\UI-TooltipDivider-Transparent">
+					<Size x="0" y="8"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"  x="4"  y="-4"/>
+						<Anchor point="TOPRIGHT" x="-4" y="-4"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Text"
+					inherits="GameFontNormalSmall"
+					justifyH="CENTER">
+					<Size x="0" y="20"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+					<Color r="1" g="1" b="1" a="0.9"/>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+	
+	<Frame name="ConsolePortUnitMenu"
+		clampedToScreen="true"
+		movable="true"
+		enableMouse="true"
+		inherits="ConsolePortPopupFrameTemplate"
+		hidden="true"
+		parent="UIParent">
+	
+		<Size x="340" y="130"/>
+		<Anchors>
+			<Anchor point="CENTER" x="300" y="0"/>
+		</Anchors>
+	
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Desc2"
+					inherits="DialogButtonHighlightText"
+					justifyH="LEFT">
+					<Anchors>
+						<Anchor point="TOPLEFT"
+							relativeTo="$parent.Desc"
+							relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	
+		<Scripts>
+			<OnMouseDown method="StartMoving"/>
+			<OnMouseUp method="StopMovingOrSizing"/>
+		</Scripts>
+	</Frame>
+
+
 	<!-- The interface cursor, snaps between and clicks on UI elements out of combat. Cursors\Interface.lua -->
 	<Frame name="ConsolePortCursor" parent="UIParent" frameStrata="TOOLTIP">
 		<Size x="32" y="32"/>
@@ -477,12 +539,15 @@
 	</Button>
 
 	<!-- Drivers\TargetAI.lua -->
-	<Button name="ConsolePortTargetAI" parent="UIParent" hidden="true" registerForClicks="AnyDown, AnyUp">
+	<Button name="ConsolePortTargetAI" parent="UIParent" hidden="true" registerForClicks="AnyDown, AnyUp" inherits="SecureHandlerBaseTemplate, SecureActionButtonTemplate, SecureHandlerAttributeTemplate">
 		<Attributes>
 			<Attribute name="type" type="string" value="macro"/>
 		</Attributes>
 		<Frames>
-			<Frame name="$parentSelector" parentKey="Selector" enableKeyboard="true" hidden="true">
+			<Button name="$parentSelector" parentKey="Selector"
+				inherits="SecureHandlerAttributeTemplate, SecureActionButtonTemplate"
+				registerForClicks="LeftButtonUp"
+				hidden="true">
 				<Size x="42" y="0"/>
 				<Anchors>
 					<Anchor point="TOP" relativeTo="ConsolePortMouseHandle" x="0" y="22"/>
@@ -490,17 +555,19 @@
 				</Anchors>
 				<Layers>
 					<Layer level="ARTWORK">
-						<Texture parentKey="TopArrow" inherits="HelpPlateArrowUP">
+						<Texture parentKey="TopArrow" file="Interface\AddOns\ConsolePort\Textures\Interface\TalentParts">
 							<Size x="42" y="14"/>
 							<Anchors>
 								<Anchor point="TOP"/>
 							</Anchors>
+							<TexCoords left="0.78515625" right="0.99218750" bottom="0.54687500" top="0.58789063"/>
 						</Texture>
-						<Texture parentKey="BottomArrow" inherits="HelpPlateArrowDOWN">
+						<Texture parentKey="BottomArrow" file="Interface\AddOns\ConsolePort\Textures\Interface\TalentParts">
 							<Size x="42" y="14"/>
 							<Anchors>
 								<Anchor point="BOTTOM"/>
 							</Anchors>
+							<TexCoords left="0.78515625" right="0.99218750" top="0.54687500" bottom="0.58789063"/>
 						</Texture>
 					</Layer>
 				</Layers>
@@ -514,14 +581,14 @@
 				</Animations>
 				<Scripts>
 					<OnLoad>
-						self:SetParent(ConsolePortMouseHandle);
+						--self:SetParent(ConsolePortMouseHandle);
 					</OnLoad>
 					<OnShow>
 						self.Group:Play();
 					</OnShow>			
 					<!-- <OnClick> if not InCombatLockdown() then SecureActionButton_OnClick(self, button, down); end</OnClick> -->
 				</Scripts>
-			</Frame>
+			</Button>
 		</Frames>
 		<Scripts>
 			<OnLoad>

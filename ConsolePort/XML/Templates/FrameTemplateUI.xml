@@ -201,7 +201,7 @@
                     <Anchors>
 						<Anchor point="CENTER"/>
 					</Anchors>
-                    <TexCoords left="0.000976562" right="0.293945" top="0.331055" bottom="0.375977"/>
+                    <TexCoords left="0.000976562" right="0.293945" top="0.600" bottom="0.6401953125"/>
 				</Texture>
 			</Layer>
 			<Layer level="OVERLAY">

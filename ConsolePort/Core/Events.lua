@@ -6,6 +6,7 @@
 ---------------------------------------------------------------
 local Events, _, db = {}, ...
 ---------------------------------------------------------------
+local CPAPI = db.CPAPI
 local After, WorldFrame, MouseEvents = CPAPI.TimerAfter, WorldFrame
 ---------------------------------------------------------------
 
@@ -232,7 +233,7 @@ function Events:ADDON_LOADED(name)
 	self:SetupRaidCursor()
 	self:UpdateCameraDriver()
 	self:RunOOC(self.UpdateMouseDriver)
-	self:RunOOC(self.SetupUtilityRing)
+	self:RunOOC(self.SetupUtilityRing) 
 	if not self.calibrationFrame then
 		self:CheckLoadedSettings()
 	end

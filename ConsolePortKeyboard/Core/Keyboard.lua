@@ -5,6 +5,7 @@ local cc = RAID_CLASS_COLORS[class]
 local Keyboard = CreateFrame("Frame", addOn, UIParent)
 local DIR, Current = 0
 local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
 
 local cfg = {
 	KEY = {

@@ -6,6 +6,7 @@
 -- terrible tooltip hook to provide click instructions.
 
 local _, db = ...
+local CPAPI = db.CPAPI
 
 do 
 	-- Give default UI action buttons their correct action IDs.

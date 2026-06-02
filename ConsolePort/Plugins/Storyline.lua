@@ -4,6 +4,8 @@
 -- fit the art style of ConsolePort, instead of Storyline. 
 
 local _, db = ...
+local CPAPI = db.CPAPI
+
 ConsolePort:AddPlugin('Storyline', function(self) 
 	-----------------------------------------
 	local Frame = Storyline_NPCFrame
@@ -75,13 +77,13 @@ ConsolePort:AddPlugin('Storyline', function(self)
 		region:ClearAllPoints()
 		region:SetPoint("RIGHT", -4, 0)
 	region = Frame.TopBorder
-		region:SetTexture("Interface\\LevelUp\\MinorTalents")
+		region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 		region:SetSize(418, 2)
 		region:SetTexCoord(0, 418/512, 341/512, 342/512)
 		region:ClearAllPoints()
 		region:SetPoint("TOP", 0, -16)
 	region = Frame.BottomBorder
-		region:SetTexture("Interface\\LevelUp\\MinorTalents")
+		region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 		region:SetSize(418, 2)
 		region:SetTexCoord(0, 418/512, 341/512, 342/512)
 		region:ClearAllPoints()
@@ -109,7 +111,7 @@ ConsolePort:AddPlugin('Storyline', function(self)
 		region:Show()
 
 	region = Storyline_NPCFrameBanner
-		region:SetTexture("Interface\\LevelUp\\MinorTalents.blp")
+		region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 		region:SetTexCoord(0.001953125, 0.818359375, 0.6660, 0.794921875)
 		region:SetPoint("TOP", 0, -64)
 		region:SetHeight(46)
@@ -142,12 +144,12 @@ ConsolePort:AddPlugin('Storyline', function(self)
 		region:SetAlpha(0.35)
 
 	region = Frame:CreateTexture(nil, "ARTWORK", nil, 4)
-		region:SetTexture("Interface\\LevelUp\\MinorTalents")
+		region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 		region:SetTexCoord(0, 418/512, 341/512, 342/512)
 		region:SetPoint("TOPLEFT", Frame.LocBack, "TOPLEFT", 0, 2)
 		region:SetPoint("BOTTOMRIGHT", Frame.LocBack, "TOPRIGHT", 0, 0)
 	region = Frame:CreateTexture(nil, "ARTWORK", nil, 4)
-		region:SetTexture("Interface\\LevelUp\\MinorTalents")
+		region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 		region:SetSize(418, 2)
 		region:SetTexCoord(0, 418/512, 341/512, 342/512)
 		region:SetPoint("BOTTOMLEFT", Frame.LocBack, "BOTTOMLEFT", 0, 0)
@@ -340,14 +342,14 @@ ConsolePort:AddPlugin('Storyline', function(self)
 			region:SetPoint("RIGHT", 10, 0)
 			region:SetHeight(100)
 		region = box.GlowTop
-			region:SetTexture("Interface\\LevelUp\\MinorTalents")
+			region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 			region:SetHorizTile(false)
 			region:SetSize(418, 2)
 			region:SetTexCoord(0, 418/512, 341/512, 342/512)
 			region:ClearAllPoints()
 			region:SetPoint("TOP", 0, 0)
 		region = box.GlowBottom
-			region:SetTexture("Interface\\LevelUp\\MinorTalents")
+			region:SetTexture("Interface\\AddOns\\ConsolePort\\Textures\\Interface\\MinorTalents")
 			region:SetHorizTile(false)
 			region:SetSize(418, 2)
 			region:SetTexCoord(0, 418/512, 341/512, 342/512)

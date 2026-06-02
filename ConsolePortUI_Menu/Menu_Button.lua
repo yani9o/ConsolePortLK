@@ -1,5 +1,6 @@
 local _, L = ...
 local db = ConsolePort:GetData()
+local CPAPI = db.CPAPI
 local Button  = {}
 L.Button = Button
 

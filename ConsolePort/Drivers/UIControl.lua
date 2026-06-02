@@ -1,4 +1,5 @@
 local _, db = ...
+local CPAPI = db.CPAPI
 local UI = ConsolePortUI
 local UIParent, assert, pairs = UIParent, assert, pairs
 local Registry = UI.FrameRegistry
