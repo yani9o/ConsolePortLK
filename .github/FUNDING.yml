@@ -1,5 +1,6 @@
 # These are supported funding model platforms
 
 ko_fi: leoaviana
-custom: ['https://www.paypal.com/donate/?hosted_button_id=CSQHQU3DNCRYU']
-custom: ['https://www.wise.com/pay/me/leandroa3066']
+custom:
+  - https://www.paypal.com/donate/?hosted_button_id=CSQHQU3DNCRYU
+  - https://www.wise.com/pay/me/leandroa3066
