@@ -4,9 +4,6 @@ This AddOn is the backported version of [ConsolePort](https://github.com/seblind
 
 Beware that the World of Warcraft 3.3.5a client is old and it's no longer supported, this project has been created only for learning purposes (Lua programming).<br/><br/>
 
-I have ported it long time ago and never released, now I'm finally sharing what I was able to do. It may not have complete ConsolePort 1.9.17 functionality parity due to missing functions in the old client Lua API implementation but I believe it is in an usable state, but it has not been extensively tested (raids, instances, battlegrounds)
-so there might be bugs but I believe I've fixed most if not all game breaking bugs.
-
 ## Differences between ConsolePortLK vs ConsolePort 1.9.17
 
 1. ConsolePortLK is a port to work on a World of Warcraft Lua API older than it supports (WoW 3.3.5a 12340).
@@ -22,10 +19,10 @@ This project is not affiliated in anyway with the original project, please do no
 ConsolePortLK is an interface add-on for World of Warcraft that will give you a handful of nifty features
 in order to let you play the game on a controller - without inconvenience.
 <br/><br/>
+
 Consisting of several modules, ConsolePortLK is a fully-fledged solution to handling all the quirks in a game where gamepad support was not intended,
 including interface navigation, custom-tailored UI elements to assist in gameplay. You will need a controller mapping software to use this AddOn.
-the original project used a app called WoWmapper which already did the mapping automatically, I basically forked and updated WoWmapper
-to have a better integration with the Wrath of the Lich King (3.3.5a) client using it's older memory reading functions and increase controller compatibility, however it's not required, you can use any controller mapping software.
+the original project used a app called WoWmapper which already did the mapping automatically, I completely rewrote it and launched **[WoWpadX](https://github.com/leoaviana/WoWpadX)**. A SDL3 based keyboard mapping software made to have a better integration with the Wrath of the Lich King (3.3.5a) and controller compatibility, however it's not mandatory to have it, you can use any controller mapping software.
 
 ## Screenshots:
 
@@ -56,8 +53,8 @@ to have a better integration with the Wrath of the Lich King (3.3.5a) client usi
 1. Download **[Latest Version](https://github.com/leoaviana/ConsolePortLK/releases/latest)**
 2. Unpack the Zip file
 3. Copy (or drag and drop) all of the extracted folders (ConsolePort, ConsolePortBar, etc.) into your Wow-Directory\Interface\AddOns
-4. Download **[WoWmapperX](https://github.com/leoaviana/WoWmapperX)**
-5. Start WoWmapperX and connect your controller.
+4. Download **[WoWpadX](https://github.com/leoaviana/WoWpadX)**
+5. Start WoWpadX and connect your controller.
 5. Restart WoW
 
 ## Commands:
@@ -94,7 +91,33 @@ ConsolePortLK has only been made taking in consideration default WoW API for 3.3
 
 If somehow it doesn't work for you in a customized client, don't expect fast changes in this AddOn just to support it unless someone with enough interest send pull requests fixing these issues when they happen, because customized clients can be a moving target and may get new modifications that break old stuff.
 
-### I am unable to find the configuration profile in Steam ###
-Due to how non-steam games are added it may be difficult to find a proper configuration for this plugin.  
-Create a new configuration and set the keys to the following:
-<img width="1275" height="680" alt="image" src="https://github.com/user-attachments/assets/4d0e2ea8-a0e2-4b9f-9665-a74579e94944" />
+### WoWpadX is not recognizing WoW as a running process: 
+Due to how non-steam games are added, or how Proton compatibility works, it may be difficult to get WoWPadX working as intended on Steam/Steam deck/SteamOS. If this is the case, try each option until one works for you.
+
+Before you try the follow, make sure WoWpadX and the WoW.exe are on the same Proton compatability setting (or Wine Prefix). You may have to try different settings until both work on the same Proton/Wine prefix setting.
+
+#### 1) WoWPadX Launch Options Command Line
+
+With WoWpadX as non steam game, go to properties of the game and find the `Launch Options` dialog, and put the command line argument -l and specify the path of the wow executable, it should launch the executable in the same prefix and recognize it immediately.
+
+Example Usage: `WoWpadX.exe -l "/Path/To/WoW.exe"`. If this option does not work, try the next.
+
+#### 2) WoW.exe Launch Options
+
+Go to the properties of your added non steam game for the WoW executable. In the `Launch Options`, add this:
+
+`PROTON_REMOTE_DEBUG_CMD="/Absolute Path/To Your WoWPadX Executable/here" %command%`
+
+Exampel Usage: `PROTON_REMOTE_DEBUG_CMD="/home/deck/Games/WoW/3.3.5a/WoW.exe" %command%`
+
+#### 3) Steam Game Controller Layout
+
+If non of the above options work, this is the last resort.
+
+- Name your WoW game `World of Warcraft: WotLK` in Steam.
+- Go to Controller Layout: In Template, Community or Search and look for the template: `Gamepad leoaviana ConsolePortLK` by Prrg.
+
+If the layout is not showing up, make sure to select `Show All Layouts`. and look for it again.
+
+Apply the layout.
+
